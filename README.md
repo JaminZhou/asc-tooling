@@ -19,6 +19,31 @@ Current implementation status:
 Product-specific assets such as screenshot renderers should stay in each app
 repository.
 
+## Requirements
+
+Set these environment variables before running any command:
+
+- `ASC_KEY_ID`
+- `ASC_ISSUER_ID`
+- `ASC_KEY_PATH`
+
+## Installation
+
+Consume the gem from a private Git repository in a product `Gemfile`:
+
+```ruby
+gem "asc_tooling",
+  git: "git@github.com:JaminZhou/asc-tooling.git",
+  tag: "v0.1.1"
+```
+
+Then install and run through Bundler:
+
+```bash
+bundle install
+bundle exec asc-review status --bundle-id com.example.app
+```
+
 Example local usage from a checkout:
 
 ```bash
@@ -27,3 +52,6 @@ Example local usage from a checkout:
 ./exe/asc-beta status --bundle-id com.example.app
 ./exe/asc-screenshots status --bundle-id com.example.app --locale en-US --display-type APP_DESKTOP
 ```
+
+For a fuller usage guide and the release flow, see
+[docs/release-and-usage.md](docs/release-and-usage.md).
