@@ -1,0 +1,5 @@
+#!/usr/bin/env ruby
+
+require "asc_tooling"
+
+ASCTooling::Beta.run(ARGV)
