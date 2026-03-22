@@ -1,5 +1,7 @@
 #!/usr/bin/env ruby
 
+require "pathname"
+$LOAD_PATH.unshift(Pathname.new(__dir__).join("..", "lib").expand_path.to_s)
 require "asc_tooling"
 
-ASCTooling::Review.run(ARGV)
+exit ASCTooling::Review.run(ARGV)
