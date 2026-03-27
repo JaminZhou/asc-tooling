@@ -55,3 +55,12 @@ Example local usage from a checkout:
 
 For a fuller usage guide and the release flow, see
 [docs/release-and-usage.md](docs/release-and-usage.md).
+
+## Experimental local helper
+
+There is also a local-only Resolution Center helper for fetching reviewer
+messages through an existing browser session:
+
+- [docs/browser-resolution-center.md](docs/browser-resolution-center.md)
+
+This is intentionally not part of the formal JWT-based release workflow.

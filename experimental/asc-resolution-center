@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+VENV_DIR="${ASC_BROWSER_VENV:-/tmp/asc-tooling-browser-cookie3-venv}"
+COOKIE_JSON="$(mktemp /tmp/asc-browser-cookies.XXXXXX)"
+
+cleanup() {
+  rm -f "$COOKIE_JSON"
+}
+trap cleanup EXIT
+
+for arg in "$@"; do
+  if [ "$arg" = "--help" ] || [ "$arg" = "-h" ]; then
+    cd "$ROOT_DIR"
+    exec bundle exec ruby "$ROOT_DIR/experimental/browser_resolution_center.rb" --help
+  fi
+done
+
+if [ ! -x "$VENV_DIR/bin/python" ]; then
+  python3 -m venv "$VENV_DIR"
+fi
+
+# shellcheck disable=SC1090
+source "$VENV_DIR/bin/activate"
+
+if ! python -c "import browser_cookie3, requests" >/dev/null 2>&1; then
+  python -m pip install --quiet browser-cookie3 requests
+fi
+
+cd "$ROOT_DIR"
+
+python_args=(
+  "$ROOT_DIR/experimental/export_browser_asc_session.py"
+  --output "$COOKIE_JSON"
+)
+
+if [ -n "${ASC_BROWSER_PROFILE_NAME:-}" ]; then
+  python_args+=(--profile-name "$ASC_BROWSER_PROFILE_NAME")
+fi
+
+python "${python_args[@]}"
+
+bundle exec ruby "$ROOT_DIR/experimental/browser_resolution_center.rb" \
+  --cookie-json "$COOKIE_JSON" \
+  "$@"
