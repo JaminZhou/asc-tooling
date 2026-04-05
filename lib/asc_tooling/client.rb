@@ -57,6 +57,7 @@ module ASCTooling
       @issuer_id = issuer_id
       @key_path = key_path
       @client = Spaceship::ConnectAPI
+      normalize_proxy_env!
       authenticate!
     end
 
@@ -227,6 +228,18 @@ module ASCTooling
         duration: 1200,
         in_house: false
       )
+    end
+
+    def normalize_proxy_env!
+      if self.class.blank?(ENV["http_proxy"]) && !self.class.blank?(ENV["HTTP_PROXY"])
+        ENV["http_proxy"] = ENV["HTTP_PROXY"]
+      end
+      if self.class.blank?(ENV["https_proxy"]) && !self.class.blank?(ENV["HTTPS_PROXY"])
+        ENV["https_proxy"] = ENV["HTTPS_PROXY"]
+      end
+
+      ENV.delete("HTTP_PROXY")
+      ENV.delete("HTTPS_PROXY")
     end
   end
 end

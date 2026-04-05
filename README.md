@@ -8,6 +8,7 @@ Current command surface:
 - `asc-metadata`
 - `asc-beta`
 - `asc-screenshots`
+- `asc-iap`
 
 Current implementation status:
 
@@ -15,6 +16,7 @@ Current implementation status:
 - `asc-metadata`: implemented
 - `asc-beta`: implemented
 - `asc-screenshots`: implemented
+- `asc-iap`: implemented
 
 Product-specific assets such as screenshot renderers should stay in each app
 repository.
@@ -34,7 +36,7 @@ Consume the gem from a private Git repository in a product `Gemfile`:
 ```ruby
 gem "asc_tooling",
   git: "git@github.com:JaminZhou/asc-tooling.git",
-  tag: "v0.1.1"
+  tag: "v0.2.0"
 ```
 
 Then install and run through Bundler:
@@ -51,7 +53,14 @@ Example local usage from a checkout:
 ./exe/asc-metadata status --bundle-id com.example.app --locale en-US
 ./exe/asc-beta status --bundle-id com.example.app
 ./exe/asc-screenshots status --bundle-id com.example.app --locale en-US --display-type APP_DESKTOP
+./exe/asc-iap status --bundle-id com.example.app
 ```
+
+`asc-iap` currently covers IAP status, review screenshot upload, availability
+sync, and submission attempts. If Apple returns
+`FIRST_IAP_MUST_BE_SUBMITTED_ON_VERSION`, the app's first IAP still needs to be
+attached to the app version in the App Store Connect web UI before that version
+is submitted.
 
 For a fuller usage guide and the release flow, see
 [docs/release-and-usage.md](docs/release-and-usage.md).

@@ -23,6 +23,7 @@ Gem::Specification.new do |spec|
     asc-metadata
     asc-beta
     asc-screenshots
+    asc-iap
   ]
   spec.require_paths = ["lib"]
 
