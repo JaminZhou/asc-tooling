@@ -19,6 +19,10 @@ module ASCTooling
       privacy_choices_url: nil
     }.freeze
 
+    VERSION_DIRECT_OPTIONS = {
+      copyright: nil
+    }.freeze
+
     def self.run(argv = ARGV)
       options = {
         platform: "macos",
@@ -46,6 +50,7 @@ module ASCTooling
         opts.on("--support-url URL", "Support URL") { |value| options[:support_url] = value }
         opts.on("--whats-new TEXT", "What's New text") { |value| options[:whats_new] = value }
         opts.on("--whats-new-file PATH", "Read What's New text from a file") { |value| options[:whats_new_file] = value }
+        opts.on("--copyright TEXT", "Copyright text (version-level, not localized)") { |value| options[:copyright] = value }
         opts.on("--key-id KEY_ID", "ASC API key id") { |value| options[:key_id] = value }
         opts.on("--issuer-id ISSUER_ID", "ASC API issuer id") { |value| options[:issuer_id] = value }
         opts.on("--key-path PATH", "Path to ASC API .p8 key") { |value| options[:key_path] = value }
@@ -107,6 +112,7 @@ module ASCTooling
         },
         locale: @options[:locale],
         version: version.version_string,
+        copyright: version.copyright,
         app_info_localization: app_info_localization && {
           name: app_info_localization.name,
           subtitle: app_info_localization.subtitle,
@@ -130,6 +136,7 @@ module ASCTooling
 
       puts "App: #{summary.dig(:app, :name)} (#{summary.dig(:app, :bundle_id)})"
       puts "Version: #{summary[:version]}"
+      puts "Copyright: #{summary[:copyright] || '-'}"
       puts "Locale: #{summary[:locale]}"
 
       if summary[:app_info_localization]
@@ -157,9 +164,15 @@ module ASCTooling
 
       app_info_attributes = resolved_attributes(APP_INFO_FIELD_OPTIONS)
       version_attributes = resolved_attributes(VERSION_FIELD_OPTIONS)
-      raise OptionParser::MissingArgument, "no metadata fields provided" if app_info_attributes.empty? && version_attributes.empty?
+      version_direct_attributes = resolved_attributes(VERSION_DIRECT_OPTIONS)
+      raise OptionParser::MissingArgument, "no metadata fields provided" if app_info_attributes.empty? && version_attributes.empty? && version_direct_attributes.empty?
 
       updated_sections = []
+
+      unless version_direct_attributes.empty?
+        version.update(client: @asc.client, attributes: version_direct_attributes)
+        updated_sections << "version info"
+      end
 
       unless app_info_attributes.empty?
         _, app_info_localization = @asc.find_or_create_app_info_localization!(app, @options[:locale])
