@@ -9,7 +9,7 @@ module ASCTooling
       }
 
       parser = OptionParser.new do |opts|
-        opts.banner = "Usage: asc-beta <status|add-build|add-tester|remove-tester> --bundle-id com.example.app [options]"
+        opts.banner = "Usage: asc-beta <status|add-build|add-tester|remove-tester|set-test-notes> --bundle-id com.example.app [options]"
 
         opts.on("--bundle-id BUNDLE_ID", "App bundle identifier") { |value| options[:bundle_id] = value }
         opts.on("--app-version VERSION", "Pre-release version to filter builds") { |value| options[:app_version] = value }
@@ -21,6 +21,8 @@ module ASCTooling
         opts.on("--first-name NAME", "First name when creating a tester") { |value| options[:first_name] = value }
         opts.on("--last-name NAME", "Last name when creating a tester") { |value| options[:last_name] = value }
         opts.on("--create-if-missing", "Create a tester if the email does not already exist") { options[:create_if_missing] = true }
+        opts.on("--notes TEXT", "Test notes (What to Test) for set-test-notes") { |value| options[:notes] = value }
+        opts.on("--locale LOCALE", "Locale for test notes (default: en-US)") { |value| options[:locale] = value }
         opts.on("--dry-run", "Show what would happen without changing ASC") { options[:dry_run] = true }
         opts.on("--key-id KEY_ID", "ASC API key id") { |value| options[:key_id] = value }
         opts.on("--issuer-id ISSUER_ID", "ASC API issuer id") { |value| options[:issuer_id] = value }
@@ -54,6 +56,7 @@ module ASCTooling
       when "add-build" then add_build
       when "add-tester" then add_tester
       when "remove-tester" then remove_tester
+      when "set-test-notes" then set_test_notes
       else
         raise OptionParser::InvalidArgument, "unknown command: #{@options[:command]}"
       end
@@ -194,6 +197,53 @@ module ASCTooling
       )
 
       puts "Removed tester #{tester_label(tester)} from beta group #{group.dig('attributes', 'name')}."
+    end
+
+    def set_test_notes
+      notes = @options[:notes]
+      raise OptionParser::MissingArgument, "--notes is required for set-test-notes" if ASCTooling::Client.blank?(notes)
+
+      app = @asc.find_app!(@options[:bundle_id])
+      build = target_build!(app.id)
+      locale = @options[:locale] || "en-US"
+      build_version = build.dig("attributes", "version")
+
+      localizations = @asc.request_json(
+        "GET",
+        "/v1/builds/#{build['id']}/betaBuildLocalizations"
+      ).fetch("data", [])
+
+      localization = localizations.find { |item| item.dig("attributes", "locale") == locale }
+
+      if localization
+        @asc.request_json(
+          "PATCH",
+          "/v1/betaBuildLocalizations/#{localization['id']}",
+          body: {
+            data: {
+              type: "betaBuildLocalizations",
+              id: localization["id"],
+              attributes: { whatsNew: notes }
+            }
+          }
+        )
+      else
+        @asc.request_json(
+          "POST",
+          "/v1/betaBuildLocalizations",
+          body: {
+            data: {
+              type: "betaBuildLocalizations",
+              attributes: { locale: locale, whatsNew: notes },
+              relationships: {
+                build: { data: { type: "builds", id: build["id"] } }
+              }
+            }
+          }
+        )
+      end
+
+      puts "Set test notes for build #{build_version} (#{locale})."
     end
 
     def target_group!(app_id)
