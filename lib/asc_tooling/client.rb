@@ -124,9 +124,37 @@ module ASCTooling
       [app_info, localization]
     end
 
-    def find_or_create_app_info_localization!(app, locale)
+    def create_app_info_localization!(app_info, locale, name:)
+      request_json(
+        "POST",
+        "/v1/appInfoLocalizations",
+        body: {
+          data: {
+            type: "appInfoLocalizations",
+            attributes: {
+              locale: locale,
+              name: name
+            },
+            relationships: {
+              appInfo: {
+                data: {
+                  type: "appInfos",
+                  id: app_info.id
+                }
+              }
+            }
+          }
+        }
+      )
+    end
+
+    def find_or_create_app_info_localization!(app, locale, name: nil)
       app_info, localization = find_app_info_localization(app, locale)
-      localization ||= app_info.create_app_info_localization(client: client, attributes: { locale: locale })
+      unless localization
+        create_app_info_localization!(app_info, locale, name: name || app.name)
+        _, localization = find_app_info_localization(app, locale)
+      end
+
       [app_info, localization]
     end
 

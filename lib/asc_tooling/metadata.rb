@@ -175,7 +175,11 @@ module ASCTooling
       end
 
       unless app_info_attributes.empty?
-        _, app_info_localization = @asc.find_or_create_app_info_localization!(app, @options[:locale])
+        _, app_info_localization = @asc.find_or_create_app_info_localization!(
+          app,
+          @options[:locale],
+          name: app_info_attributes[:name]
+        )
         app_info_localization.update(client: @asc.client, attributes: app_info_attributes)
         updated_sections << "app info"
       end

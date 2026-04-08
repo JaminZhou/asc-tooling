@@ -29,4 +29,5 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   spec.add_dependency "fastlane", ">= 2.220"
+  spec.add_development_dependency "minitest", ">= 5.0"
 end
