@@ -36,7 +36,7 @@ Consume the gem from a private Git repository in a product `Gemfile`:
 ```ruby
 gem "asc_tooling",
   git: "git@github.com:JaminZhou/asc-tooling.git",
-  tag: "v0.2.0"
+  tag: "v0.4.1"
 ```
 
 Then install and run through Bundler:
