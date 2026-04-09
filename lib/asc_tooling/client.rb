@@ -76,10 +76,14 @@ module ASCTooling
     end
 
     def find_editable_version!(app, platform:, app_version: nil)
+      find_version!(app, platform: platform, app_version: app_version, states: EDITABLE_STATES)
+    end
+
+    def find_version!(app, platform:, app_version: nil, states: nil)
       filter = {
-        "filter[platform]" => platform,
-        "filter[appStoreState]" => EDITABLE_STATES.join(",")
+        "filter[platform]" => platform
       }
+      filter["filter[appStoreState]"] = Array(states).join(",") if states && !states.empty?
       data = request_json(
         "GET",
         "/v1/apps/#{app.id}/appStoreVersions",
@@ -89,7 +93,7 @@ module ASCTooling
       versions.select! { |item| item.dig("attributes", "versionString") == app_version } if app_version
 
       selected = versions.max_by { |item| Gem::Version.new(item.dig("attributes", "versionString")) }
-      raise ArgumentError, "editable version not found" unless selected
+      raise ArgumentError, app_version ? "version #{app_version} not found" : "app store version not found" unless selected
 
       Spaceship::ConnectAPI::AppStoreVersion.get(
         app_store_version_id: selected["id"],

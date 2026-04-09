@@ -17,8 +17,13 @@ export ASC_KEY_PATH=~/.config/appstoreconnect/AuthKey_xxx.p8
 ```bash
 bundle exec asc-review status --bundle-id com.example.app --json
 bundle exec asc-review submit --bundle-id com.example.app --release-type manual
+bundle exec asc-review release --bundle-id com.example.app --app-version 1.2.0
 bundle exec asc-review withdraw --bundle-id com.example.app
 ```
+
+`asc-review release` sends the manual release request for a version in
+`PENDING_DEVELOPER_RELEASE`. If the version is already processing or live, it
+no-ops with a status message.
 
 ### Metadata
 
@@ -95,8 +100,8 @@ bundle exec asc-beta remove-tester \
 3. Create and push a tag:
 
 ```bash
-git tag v0.2.0
-git push origin v0.2.0
+git tag v0.4.2
+git push origin v0.4.2
 ```
 
 4. In each consuming product repository:
@@ -104,7 +109,7 @@ git push origin v0.2.0
 ```bash
 bundle update asc_tooling
 git add Gemfile.lock
-git commit -m "Update asc_tooling to v0.2.0"
+git commit -m "Update asc_tooling to v0.4.2"
 ```
 
 ## Scope

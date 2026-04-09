@@ -36,7 +36,7 @@ Consume the gem from a private Git repository in a product `Gemfile`:
 ```ruby
 gem "asc_tooling",
   git: "git@github.com:JaminZhou/asc-tooling.git",
-  tag: "v0.4.1"
+  tag: "v0.4.2"
 ```
 
 Then install and run through Bundler:
@@ -44,6 +44,7 @@ Then install and run through Bundler:
 ```bash
 bundle install
 bundle exec asc-review status --bundle-id com.example.app
+bundle exec asc-review release --bundle-id com.example.app --app-version 1.2.0
 ```
 
 Example local usage from a checkout:

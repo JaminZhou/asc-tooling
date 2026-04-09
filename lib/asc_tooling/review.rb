@@ -7,6 +7,13 @@ module ASCTooling
       "after-approval" => "AFTER_APPROVAL",
       "manual" => "MANUAL"
     }.freeze
+    RELEASEABLE_STATES = %w[
+      PENDING_DEVELOPER_RELEASE
+      PROCESSING_FOR_APP_STORE
+      PROCESSING_FOR_DISTRIBUTION
+      READY_FOR_DISTRIBUTION
+      READY_FOR_SALE
+    ].freeze
 
     def self.run(argv = ARGV)
       options = {
@@ -15,7 +22,7 @@ module ASCTooling
       }
 
       parser = OptionParser.new do |opts|
-        opts.banner = "Usage: asc-review <status|submit|withdraw> --bundle-id com.example.app [options]"
+        opts.banner = "Usage: asc-review <status|submit|withdraw|release> --bundle-id com.example.app [options]"
 
         opts.on("--bundle-id BUNDLE_ID", "App bundle identifier") { |value| options[:bundle_id] = value }
         opts.on("--app-version VERSION", "Editable App Store version to target") { |value| options[:app_version] = value }
@@ -53,6 +60,7 @@ module ASCTooling
       when "status" then print_status
       when "submit" then submit_for_review
       when "withdraw" then withdraw_from_review
+      when "release" then release_to_store
       else
         raise OptionParser::InvalidArgument, "unknown command: #{@options[:command]}"
       end
@@ -73,7 +81,7 @@ module ASCTooling
 
     def print_status
       app = @asc.find_app!(@options[:bundle_id])
-      version = @asc.find_editable_version!(app, platform: platform, app_version: @options[:app_version])
+      version = @asc.find_version!(app, platform: platform, app_version: @options[:app_version])
       current_build = version.build
       latest_build = find_candidate_build(app.id, version.version_string)
       submissions = review_submissions(app.id)
@@ -175,6 +183,23 @@ module ASCTooling
       puts "Withdrew #{version.version_string}; version state is now #{version.app_store_state}"
     end
 
+    def release_to_store
+      app = @asc.find_app!(@options[:bundle_id])
+      version = find_release_target_version!(app)
+
+      case version.app_store_state
+      when "PENDING_DEVELOPER_RELEASE"
+        release_request = create_release_request(version.id)
+        version = @asc.find_version!(app, platform: platform, app_version: version.version_string)
+        puts "Release request #{release_request['id']} created for #{version.version_string}"
+        puts "Version #{version.version_string} is now #{version.app_store_state}"
+      when "PROCESSING_FOR_APP_STORE", "PROCESSING_FOR_DISTRIBUTION", "READY_FOR_DISTRIBUTION", "READY_FOR_SALE"
+        puts "Version #{version.version_string} is #{version.app_store_state}; nothing to release"
+      else
+        puts "Version #{version.version_string} is #{version.app_store_state}; release is only available after approval"
+      end
+    end
+
     def find_target_build!(app_id, app_version)
       if @options[:build_number]
         build = build_candidates(app_id, app_version).find { |item| item.dig("attributes", "version") == @options[:build_number] }
@@ -270,6 +295,31 @@ module ASCTooling
           }
         }
       ).fetch("data")
+    end
+
+    def create_release_request(version_id)
+      @asc.request_json(
+        "POST",
+        "/v1/appStoreVersionReleaseRequests",
+        body: {
+          data: {
+            type: "appStoreVersionReleaseRequests",
+            relationships: {
+              appStoreVersion: {
+                data: { type: "appStoreVersions", id: version_id }
+              }
+            }
+          }
+        }
+      ).fetch("data")
+    end
+
+    def find_release_target_version!(app)
+      return @asc.find_version!(app, platform: platform, app_version: @options[:app_version]) if @options[:app_version]
+
+      @asc.find_version!(app, platform: platform, states: RELEASEABLE_STATES)
+    rescue ArgumentError
+      @asc.find_version!(app, platform: platform)
     end
 
     def submit_review_submission(submission_id)
