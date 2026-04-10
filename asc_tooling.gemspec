@@ -9,7 +9,7 @@ Gem::Specification.new do |spec|
   spec.email = ["zhoujiamin1992@gmail.com"]
 
   spec.summary = "Reusable App Store Connect automation tooling"
-  spec.description = "Review, metadata, screenshot, and beta tooling for App Store Connect workflows."
+  spec.description = "Review, metadata, sales, screenshot, and beta tooling for App Store Connect workflows."
   spec.homepage = "https://github.com/JaminZhou/asc-tooling"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.0"
@@ -22,6 +22,7 @@ Gem::Specification.new do |spec|
     asc-review
     asc-metadata
     asc-beta
+    asc-sales
     asc-screenshots
     asc-iap
     asc-version

@@ -183,31 +183,34 @@ module ASCTooling
     end
 
     def request_json(method, path, params: nil, body: nil)
-      uri = URI("https://api.appstoreconnect.apple.com#{path}")
-      uri.query = URI.encode_www_form(params) if params && !params.empty?
-
-      request_class = case method
-                      when "GET" then Net::HTTP::Get
-                      when "POST" then Net::HTTP::Post
-                      when "PATCH" then Net::HTTP::Patch
-                      when "DELETE" then Net::HTTP::Delete
-                      else
-                        raise ArgumentError, "unsupported method: #{method}"
-                      end
-
-      request = request_class.new(uri)
-      request["Authorization"] = "Bearer #{token}"
-      request["Accept"] = "application/json"
-      request["Content-Type"] = "application/json" if body
-      request.body = JSON.dump(body) if body
-
-      response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true) do |http|
-        http.request(request)
-      end
-
+      response = request_response(
+        method,
+        path,
+        params: params,
+        body: body,
+        accept: "application/json"
+      )
       payload = response.body.to_s.empty? ? {} : JSON.parse(response.body)
       return payload if response.code.to_i.between?(200, 299)
 
+      raise APIError.new("#{method} #{path}", response.code.to_i, payload)
+    end
+
+    def request_blob(method, path, params: nil, body: nil, accept: "application/a-gzip")
+      response = request_response(
+        method,
+        path,
+        params: params,
+        body: body,
+        accept: accept
+      )
+      return response.body.to_s.b if response.code.to_i.between?(200, 299)
+
+      payload = begin
+        response.body.to_s.empty? ? {} : JSON.parse(response.body)
+      rescue JSON::ParserError
+        { "raw" => response.body.to_s }
+      end
       raise APIError.new("#{method} #{path}", response.code.to_i, payload)
     end
 
@@ -234,6 +237,55 @@ module ASCTooling
     end
 
     private
+
+    def request_response(method, path, params: nil, body: nil, accept: "application/json")
+      uri = URI("https://api.appstoreconnect.apple.com#{path}")
+      uri.query = URI.encode_www_form(params) if params && !params.empty?
+
+      request = build_request(method, uri, body: body, accept: accept)
+      perform_request(uri, request, method: method, body: body, accept: accept)
+    end
+
+    def build_request(method, uri, body:, accept:)
+      request_class = case method
+                      when "GET" then Net::HTTP::Get
+                      when "POST" then Net::HTTP::Post
+                      when "PATCH" then Net::HTTP::Patch
+                      when "DELETE" then Net::HTTP::Delete
+                      else
+                        raise ArgumentError, "unsupported method: #{method}"
+                      end
+
+      request = request_class.new(uri)
+      request["Authorization"] = "Bearer #{token}"
+      request["Accept"] = accept
+      request["Content-Type"] = "application/json" if body
+      request.body = JSON.dump(body) if body
+      request
+    end
+
+    def perform_request(uri, request, method:, body:, accept:, redirects_remaining: 5)
+      response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true) do |http|
+        http.request(request)
+      end
+
+      return response unless response.is_a?(Net::HTTPRedirection)
+      raise ArgumentError, "too many redirects for #{uri}" if redirects_remaining <= 0
+
+      location = response["location"]
+      raise ArgumentError, "missing redirect location for #{uri}" if self.class.blank?(location)
+
+      redirected_uri = URI(location)
+      redirected_request = build_request(method, redirected_uri, body: body, accept: accept)
+      perform_request(
+        redirected_uri,
+        redirected_request,
+        method: method,
+        body: body,
+        accept: accept,
+        redirects_remaining: redirects_remaining - 1
+      )
+    end
 
     def token
       Spaceship::ConnectAPI.token.text

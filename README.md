@@ -7,6 +7,7 @@ Current command surface:
 - `asc-review`
 - `asc-metadata`
 - `asc-beta`
+- `asc-sales`
 - `asc-screenshots`
 - `asc-iap`
 
@@ -15,6 +16,7 @@ Current implementation status:
 - `asc-review`: implemented
 - `asc-metadata`: implemented
 - `asc-beta`: implemented
+- `asc-sales`: implemented
 - `asc-screenshots`: implemented
 - `asc-iap`: implemented
 
@@ -29,6 +31,10 @@ Set these environment variables before running any command:
 - `ASC_ISSUER_ID`
 - `ASC_KEY_PATH`
 
+For `asc-sales`, also set:
+
+- `ASC_VENDOR_NUMBER`
+
 ## Installation
 
 Consume the gem from a private Git repository in a product `Gemfile`:
@@ -36,7 +42,7 @@ Consume the gem from a private Git repository in a product `Gemfile`:
 ```ruby
 gem "asc_tooling",
   git: "git@github.com:JaminZhou/asc-tooling.git",
-  tag: "v0.4.2"
+  tag: "v0.5.0"
 ```
 
 Then install and run through Bundler:
@@ -53,9 +59,15 @@ Example local usage from a checkout:
 ./exe/asc-review status --bundle-id com.example.app
 ./exe/asc-metadata status --bundle-id com.example.app --locale en-US
 ./exe/asc-beta status --bundle-id com.example.app
+./exe/asc-sales units --bundle-id com.example.app --vendor-number 12345678 --report-date 2026-04-10
 ./exe/asc-screenshots status --bundle-id com.example.app --locale en-US --display-type APP_DESKTOP
 ./exe/asc-iap status --bundle-id com.example.app
 ```
+
+`asc-sales` wraps the App Store Connect Sales and Trends report download endpoint.
+The `units` command fetches a Summary Sales Report and aggregates app download,
+redownload, and update units for the app's Apple identifier. `report` downloads
+and prints or saves the raw TSV report.
 
 `asc-iap` currently covers IAP status, review screenshot upload, availability
 sync, and submission attempts. If Apple returns

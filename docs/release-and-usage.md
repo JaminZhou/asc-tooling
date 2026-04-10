@@ -8,6 +8,7 @@ All commands require these environment variables:
 export ASC_KEY_ID=YOUR_KEY_ID
 export ASC_ISSUER_ID=YOUR_ISSUER_ID
 export ASC_KEY_PATH=~/.config/appstoreconnect/AuthKey_xxx.p8
+export ASC_VENDOR_NUMBER=YOUR_VENDOR_NUMBER
 ```
 
 ## Commands
@@ -93,6 +94,29 @@ bundle exec asc-beta remove-tester \
   --dry-run
 ```
 
+### Sales
+
+```bash
+bundle exec asc-sales report \
+  --vendor-number 12345678 \
+  --report-date 2026-04-10 \
+  --output build/sales-2026-04-10.tsv
+
+bundle exec asc-sales units \
+  --bundle-id com.example.app \
+  --vendor-number 12345678 \
+  --report-date 2026-04-10 \
+  --json
+```
+
+`asc-sales report` downloads the raw Sales and Trends report from App Store
+Connect and saves or prints the decompressed TSV content.
+
+`asc-sales units` uses the Summary Sales Report to aggregate app units for the
+app's Apple identifier, including download, redownload, and update rows. This
+is a lightweight wrapper over `GET /v1/salesReports`; App Analytics report
+generation is still out of scope for now.
+
 ## Release Flow
 
 1. Update the gem version in `lib/asc_tooling/version.rb`.
@@ -100,8 +124,8 @@ bundle exec asc-beta remove-tester \
 3. Create and push a tag:
 
 ```bash
-git tag v0.4.2
-git push origin v0.4.2
+git tag v0.5.0
+git push origin v0.5.0
 ```
 
 4. In each consuming product repository:
@@ -109,7 +133,7 @@ git push origin v0.4.2
 ```bash
 bundle update asc_tooling
 git add Gemfile.lock
-git commit -m "Update asc_tooling to v0.4.2"
+git commit -m "Update asc_tooling to v0.5.0"
 ```
 
 ## Scope
@@ -118,6 +142,7 @@ git commit -m "Update asc_tooling to v0.4.2"
 
 - review submission
 - metadata updates
+- sales report download and unit summaries
 - screenshot upload and inspection
 - in-app purchase screenshot, availability, and readiness helpers
 - beta group and tester management
