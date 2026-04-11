@@ -81,6 +81,20 @@ is submitted.
 For a fuller usage guide and the release flow, see
 [docs/release-and-usage.md](docs/release-and-usage.md).
 
+## Support boundaries
+
+The formal, supported workflow in this repository is the JWT-based command set:
+
+- `asc-review`
+- `asc-metadata`
+- `asc-beta`
+- `asc-sales`
+- `asc-screenshots`
+- `asc-iap`
+
+These commands are the part of `asc_tooling` intended for repeatable local
+workflows and CI-friendly automation.
+
 ## Experimental local helper
 
 There is also an unsupported, local-only Resolution Center helper for fetching
@@ -96,3 +110,7 @@ workflow:
 - it should not be used in CI, automation, or shared release scripts
 - any exported cookie JSON should stay outside the repository and be deleted
   immediately after use
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the current contribution workflow.
