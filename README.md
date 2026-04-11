@@ -59,7 +59,7 @@ Install it from the public repository in a product `Gemfile`:
 ```ruby
 gem "asc_tooling",
   git: "https://github.com/JaminZhou/asc-tooling.git",
-  tag: "v0.5.0"
+  tag: "v0.5.1"
 ```
 
 Then install and run through Bundler:

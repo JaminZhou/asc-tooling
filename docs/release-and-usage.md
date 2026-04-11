@@ -124,8 +124,8 @@ generation is still out of scope for now.
 3. Create and push a tag:
 
 ```bash
-git tag v0.5.0
-git push origin v0.5.0
+git tag v0.5.1
+git push origin v0.5.1
 ```
 
 4. In each consuming product repository:
@@ -133,7 +133,7 @@ git push origin v0.5.0
 ```bash
 bundle update asc_tooling
 git add Gemfile.lock
-git commit -m "Update asc_tooling to v0.5.0"
+git commit -m "Update asc_tooling to v0.5.1"
 ```
 
 ## Scope
