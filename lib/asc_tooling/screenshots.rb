@@ -47,11 +47,7 @@ module ASCTooling
 
     def initialize(options)
       @options = options
-      @asc = ASCTooling::Client.new(
-        key_id: ASCTooling::Client.option_or_env(options, :key_id, "ASC_KEY_ID", "APP_STORE_CONNECT_API_KEY_KEY_ID"),
-        issuer_id: ASCTooling::Client.option_or_env(options, :issuer_id, "ASC_ISSUER_ID", "APP_STORE_CONNECT_API_ISSUER_ID"),
-        key_path: ASCTooling::Client.option_or_env(options, :key_path, "ASC_KEY_PATH", "APP_STORE_CONNECT_API_KEY_KEY_FILEPATH")
-      )
+      @asc = ASCTooling::Client.new(**ASCTooling::Client.auth_options_from(options))
     end
 
     def run

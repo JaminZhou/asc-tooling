@@ -4,6 +4,20 @@ require "ostruct"
 require "asc_tooling/client"
 
 class ASCToolingClientTest < Minitest::Test
+  ENV_MISSING = Object.new
+
+  EnvAwareClient = Class.new(ASCTooling::Client) do
+    attr_reader :captured_auth
+
+    def authenticate!
+      @captured_auth = {
+        key_id: @key_id,
+        issuer_id: @issuer_id,
+        key_path: @key_path
+      }
+    end
+  end
+
   def test_find_or_create_app_info_localization_returns_existing_localization_without_creation
     client = ASCTooling::Client.allocate
 
@@ -108,5 +122,63 @@ class ASCToolingClientTest < Minitest::Test
     end
 
     assert_equal "Rouse: Stay Awake", payload.dig(:body, :data, :attributes, :name)
+  end
+
+  def test_auth_options_from_uses_supported_env_names
+    with_env(
+      "ASC_KEY_ID" => nil,
+      "APP_STORE_CONNECT_API_KEY_KEY_ID" => "secondary-key-id",
+      "ASC_ISSUER_ID" => "primary-issuer-id",
+      "APP_STORE_CONNECT_API_ISSUER_ID" => nil,
+      "ASC_KEY_PATH" => nil,
+      "APP_STORE_CONNECT_API_KEY_KEY_FILEPATH" => "/tmp/secondary-key.p8"
+    ) do
+      auth_options = ASCTooling::Client.auth_options_from({})
+
+      assert_equal "secondary-key-id", auth_options[:key_id]
+      assert_equal "primary-issuer-id", auth_options[:issuer_id]
+      assert_equal "/tmp/secondary-key.p8", auth_options[:key_path]
+    end
+  end
+
+  def test_initialize_falls_back_to_env_auth_values
+    with_env(
+      "ASC_KEY_ID" => "env-key-id",
+      "ASC_ISSUER_ID" => "env-issuer-id",
+      "ASC_KEY_PATH" => "/tmp/env-key.p8"
+    ) do
+      client = EnvAwareClient.new
+
+      assert_equal(
+        {
+          key_id: "env-key-id",
+          issuer_id: "env-issuer-id",
+          key_path: "/tmp/env-key.p8"
+        },
+        client.captured_auth
+      )
+    end
+  end
+
+  private
+
+  def with_env(overrides)
+    original_values = overrides.keys.to_h do |key|
+      [key, ENV.key?(key) ? ENV[key] : ENV_MISSING]
+    end
+
+    overrides.each do |key, value|
+      value.nil? ? ENV.delete(key) : ENV[key] = value
+    end
+
+    yield
+  ensure
+    original_values.each do |key, value|
+      if value.equal?(ENV_MISSING)
+        ENV.delete(key)
+      else
+        ENV[key] = value
+      end
+    end
   end
 end

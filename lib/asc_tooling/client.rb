@@ -16,6 +16,19 @@ module ASCTooling
   end
 
   class Client
+    KEY_ID_ENV_NAMES = %w[
+      ASC_KEY_ID
+      APP_STORE_CONNECT_API_KEY_KEY_ID
+    ].freeze
+    ISSUER_ID_ENV_NAMES = %w[
+      ASC_ISSUER_ID
+      APP_STORE_CONNECT_API_ISSUER_ID
+    ].freeze
+    KEY_PATH_ENV_NAMES = %w[
+      ASC_KEY_PATH
+      APP_STORE_CONNECT_API_KEY_KEY_FILEPATH
+    ].freeze
+
     EDITABLE_STATES = %w[
       PREPARE_FOR_SUBMISSION
       DEVELOPER_REJECTED
@@ -50,12 +63,25 @@ module ASCTooling
       nil
     end
 
+    def self.auth_options_from(options = {})
+      {
+        key_id: option_or_env(options, :key_id, *KEY_ID_ENV_NAMES),
+        issuer_id: option_or_env(options, :issuer_id, *ISSUER_ID_ENV_NAMES),
+        key_path: option_or_env(options, :key_path, *KEY_PATH_ENV_NAMES)
+      }
+    end
+
     attr_reader :client
 
     def initialize(key_id: nil, issuer_id: nil, key_path: nil)
-      @key_id = key_id
-      @issuer_id = issuer_id
-      @key_path = key_path
+      auth_options = self.class.auth_options_from(
+        key_id: key_id,
+        issuer_id: issuer_id,
+        key_path: key_path
+      )
+      @key_id = auth_options[:key_id]
+      @issuer_id = auth_options[:issuer_id]
+      @key_path = auth_options[:key_path]
       @client = Spaceship::ConnectAPI
       normalize_proxy_env!
       authenticate!

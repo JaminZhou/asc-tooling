@@ -36,8 +36,9 @@ short-lived secret.
 
 - a local Chrome profile already logged into App Store Connect
 - Bundler dependencies installed for this repo
-- `ASC_KEY_ID`, `ASC_ISSUER_ID`, and `ASC_KEY_PATH` exported if you want to
-  resolve a submission from a bundle id
+- if you want to resolve a submission from a bundle id, either export
+  `ASC_KEY_ID`, `ASC_ISSUER_ID`, and `ASC_KEY_PATH`, or pass
+  `--key-id`, `--issuer-id`, and `--key-path`
 
 ## Usage
 
@@ -46,6 +47,16 @@ short-lived secret.
 ```bash
 ./experimental/asc-resolution-center \
   --bundle-id com.example.app
+```
+
+You can also pass the ASC API key details explicitly instead of relying on ENV:
+
+```bash
+./experimental/asc-resolution-center \
+  --bundle-id com.example.app \
+  --key-id "$ASC_KEY_ID" \
+  --issuer-id "$ASC_ISSUER_ID" \
+  --key-path "$ASC_KEY_PATH"
 ```
 
 ### By explicit review submission id

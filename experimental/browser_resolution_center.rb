@@ -65,6 +65,9 @@ module Experimental
         opts.on("--cookie-json PATH", "JSON exported by experimental/export_browser_asc_session.py") { |value| @options[:cookie_json] = value }
         opts.on("--submission-id ID", "Explicit App Store review submission id") { |value| @options[:submission_id] = value }
         opts.on("--bundle-id ID", "Bundle id to auto-resolve the latest relevant review submission") { |value| @options[:bundle_id] = value }
+        opts.on("--key-id KEY_ID", "ASC API key id used when resolving a bundle id") { |value| @options[:key_id] = value }
+        opts.on("--issuer-id ISSUER_ID", "ASC API issuer id used when resolving a bundle id") { |value| @options[:issuer_id] = value }
+        opts.on("--key-path PATH", "Path to ASC API .p8 key used when resolving a bundle id") { |value| @options[:key_path] = value }
         opts.on("--platform PLATFORM", "mac, ios, tvos (default: mac)") { |value| @options[:platform] = value }
         opts.on("--json", "Emit JSON instead of text") { @options[:json] = true }
         opts.on("-h", "--help", "Show help") do
@@ -98,6 +101,7 @@ module Experimental
       command = [
         "bundle", "exec", "asc-review", "status",
         "--bundle-id", @options.fetch(:bundle_id),
+        *auth_command_args,
         "--json"
       ]
       stdout, stderr, status = Open3.capture3(*command)
@@ -118,6 +122,15 @@ module Experimental
       raise "no review submission found for #{payload['bundle_id']}" unless submission
 
       submission.fetch("id")
+    end
+
+    def auth_command_args
+      auth_options = ASCTooling::Client.auth_options_from(@options)
+      args = []
+      args.concat(["--key-id", auth_options[:key_id]]) unless ASCTooling::Client.blank?(auth_options[:key_id])
+      args.concat(["--issuer-id", auth_options[:issuer_id]]) unless ASCTooling::Client.blank?(auth_options[:issuer_id])
+      args.concat(["--key-path", auth_options[:key_path]]) unless ASCTooling::Client.blank?(auth_options[:key_path])
+      args
     end
 
     def format_output(submission_id, thread, message)
