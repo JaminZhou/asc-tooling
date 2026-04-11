@@ -37,11 +37,14 @@ For `asc-sales`, also set:
 
 ## Installation
 
-Consume the gem from a private Git repository in a product `Gemfile`:
+`asc_tooling` is currently distributed through GitHub tags rather than
+RubyGems.
+
+Install it from the public repository in a product `Gemfile`:
 
 ```ruby
 gem "asc_tooling",
-  git: "git@github.com:JaminZhou/asc-tooling.git",
+  git: "https://github.com/JaminZhou/asc-tooling.git",
   tag: "v0.5.0"
 ```
 

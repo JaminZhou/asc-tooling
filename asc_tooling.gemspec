@@ -15,7 +15,7 @@ Gem::Specification.new do |spec|
   spec.required_ruby_version = ">= 3.0"
 
   spec.files = Dir.chdir(__dir__) do
-    Dir["exe/*", "lib/**/*.rb", "*.gemspec", "Gemfile"]
+    Dir["exe/*", "lib/**/*.rb", "*.gemspec", "Gemfile", "README*", "LICENSE*"]
   end
   spec.bindir = "exe"
   spec.executables = %w[
