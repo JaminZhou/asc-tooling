@@ -1,0 +1,23 @@
+.bundle/
+.DS_Store
+.ruby-version
+.tool-versions
+Gemfile.lock
+
+# Local secrets and API credentials
+.env
+.env.*
+*.env
+*.local
+*.p8
+*.pem
+*.key
+AuthKey_*
+
+# Browser session exports and cookie dumps
+cookies.json
+session.json
+*.cookies.json
+*.session.json
+*cookie*.json
+*session*.json

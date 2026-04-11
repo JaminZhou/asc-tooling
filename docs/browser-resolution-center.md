@@ -10,6 +10,7 @@ It is **not** part of the formal `asc_tooling` release flow:
 - it depends on an existing local browser login session
 - it reads cookies from a local Chrome profile
 - it bootstraps a temporary Python virtual environment with `browser_cookie3`
+- it should never be checked into the repository or wired into CI
 
 ## Scope
 
@@ -19,6 +20,17 @@ This helper is useful for:
 - inspecting Resolution Center threads for a known submission
 
 It should **not** be wired into CI or product release commands.
+
+## Handling expectations
+
+Prefer the regular JWT-based commands first. Reach for this helper only when
+you specifically need Resolution Center text that the public API does not
+return.
+
+If you run `experimental/export_browser_asc_session.py` directly, write the
+output to a temporary file outside the repository and delete it as soon as you
+are done. That JSON contains live browser cookies and should be treated like a
+short-lived secret.
 
 ## Requirements
 

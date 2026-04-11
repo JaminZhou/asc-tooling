@@ -80,9 +80,16 @@ For a fuller usage guide and the release flow, see
 
 ## Experimental local helper
 
-There is also a local-only Resolution Center helper for fetching reviewer
-messages through an existing browser session:
+There is also an unsupported, local-only Resolution Center helper for fetching
+reviewer messages through an existing browser session:
 
 - [docs/browser-resolution-center.md](docs/browser-resolution-center.md)
 
-This is intentionally not part of the formal JWT-based release workflow.
+This helper is intentionally separate from the formal JWT-based release
+workflow:
+
+- it requires an existing local App Store Connect browser login
+- it reads cookies from a local Chrome profile
+- it should not be used in CI, automation, or shared release scripts
+- any exported cookie JSON should stay outside the repository and be deleted
+  immediately after use

@@ -6,7 +6,7 @@ Gem::Specification.new do |spec|
   spec.name = "asc_tooling"
   spec.version = ASCTooling::VERSION
   spec.authors = ["Jamin Zhou"]
-  spec.email = ["zhoujiamin1992@gmail.com"]
+  spec.email = ["me@jaminzhou.com"]
 
   spec.summary = "Reusable App Store Connect automation tooling"
   spec.description = "Review, metadata, sales, screenshot, and beta tooling for App Store Connect workflows."
