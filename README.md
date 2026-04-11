@@ -2,7 +2,21 @@
 
 Reusable App Store Connect automation tooling extracted from product repositories.
 
-Current command surface:
+`asc_tooling` packages the repeatable parts of an App Store Connect release
+workflow into small JWT-based CLI commands. It is intended for local automation
+and product repositories that need a stable way to manage review, metadata,
+screenshots, beta distribution, in-app purchases, and sales reports.
+
+## What It Covers
+
+- app review submission and release actions
+- metadata inspection and updates
+- screenshot inspection and upload
+- TestFlight group and tester management
+- in-app purchase readiness helpers
+- Sales and Trends report download plus unit summaries
+
+## Commands
 
 - `asc-review`
 - `asc-metadata`
@@ -54,6 +68,13 @@ Then install and run through Bundler:
 bundle install
 bundle exec asc-review status --bundle-id com.example.app
 bundle exec asc-review release --bundle-id com.example.app --app-version 1.2.0
+```
+
+If you prefer to work from a local checkout while iterating on the tool itself:
+
+```bash
+bundle install
+./exe/asc-review status --bundle-id com.example.app
 ```
 
 Example local usage from a checkout:
