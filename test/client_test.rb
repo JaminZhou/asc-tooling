@@ -1,5 +1,4 @@
 require "minitest/autorun"
-require "minitest/mock"
 require "ostruct"
 
 require "asc_tooling/client"
@@ -28,21 +27,16 @@ class ASCToolingClientTest < Minitest::Test
 
     create_calls = 0
 
-    client.stub(:find_app_info_localization, [app_info, existing_localization]) do
-      client.stub(:request_json, lambda { |_method, _path, params: nil, body: nil|
-        create_calls += 1
-        {}
-      }) do
-        returned_app_info, returned_localization = client.find_or_create_app_info_localization!(
-          app,
-          "ja"
-        )
+    client.define_singleton_method(:find_app_info_localization) { |_app, _locale| [app_info, existing_localization] }
+    client.define_singleton_method(:request_json) { |_method, _path, params: nil, body: nil| create_calls += 1; {} }
 
-        assert_same app_info, returned_app_info
-        assert_same existing_localization, returned_localization
-      end
-    end
+    returned_app_info, returned_localization = client.find_or_create_app_info_localization!(
+      app,
+      "ja"
+    )
 
+    assert_same app_info, returned_app_info
+    assert_same existing_localization, returned_localization
     assert_equal 0, create_calls
   end
 
@@ -56,23 +50,22 @@ class ASCToolingClientTest < Minitest::Test
     payloads = []
     calls = 0
 
-    client.stub(:find_app_info_localization, lambda { |_app, _locale|
+    client.define_singleton_method(:find_app_info_localization) do |_app, _locale|
       calls += 1
       calls == 1 ? [app_info, nil] : [app_info, created_localization]
-    }) do
-      client.stub(:request_json, lambda { |method, path, params: nil, body: nil|
-        payloads << { method: method, path: path, params: params, body: body }
-        {}
-      }) do
-        returned_app_info, returned_localization = client.find_or_create_app_info_localization!(
-          app,
-          "ja"
-        )
-
-        assert_same app_info, returned_app_info
-        assert_same created_localization, returned_localization
-      end
     end
+    client.define_singleton_method(:request_json) do |method, path, params: nil, body: nil|
+      payloads << { method: method, path: path, params: params, body: body }
+      {}
+    end
+
+    returned_app_info, returned_localization = client.find_or_create_app_info_localization!(
+      app,
+      "ja"
+    )
+
+    assert_same app_info, returned_app_info
+    assert_same created_localization, returned_localization
 
     assert_equal 1, payloads.length
     assert_equal "POST", payloads.first[:method]
@@ -110,17 +103,16 @@ class ASCToolingClientTest < Minitest::Test
     payload = nil
     calls = 0
 
-    client.stub(:find_app_info_localization, lambda { |_app, _locale|
+    client.define_singleton_method(:find_app_info_localization) do |_app, _locale|
       calls += 1
       calls == 1 ? [app_info, nil] : [app_info, created_localization]
-    }) do
-      client.stub(:request_json, lambda { |method, path, params: nil, body: nil|
-        payload = { method: method, path: path, params: params, body: body }
-        {}
-      }) do
-        client.find_or_create_app_info_localization!(app, "ja", name: "Rouse: Stay Awake")
-      end
     end
+    client.define_singleton_method(:request_json) do |method, path, params: nil, body: nil|
+      payload = { method: method, path: path, params: params, body: body }
+      {}
+    end
+
+    client.find_or_create_app_info_localization!(app, "ja", name: "Rouse: Stay Awake")
 
     assert_equal "Rouse: Stay Awake", payload.dig(:body, :data, :attributes, :name)
   end
