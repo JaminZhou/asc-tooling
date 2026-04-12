@@ -9,7 +9,7 @@ module ASCTooling
       }
 
       parser = OptionParser.new do |opts|
-        opts.banner = "Usage: asc-beta <status|add-build|add-tester|remove-tester|set-test-notes> --bundle-id com.example.app [options]"
+        opts.banner = "Usage: asc-beta <status|create-group|add-build|add-tester|remove-tester|set-test-notes> --bundle-id com.example.app [options]"
 
         opts.on("--bundle-id BUNDLE_ID", "App bundle identifier") { |value| options[:bundle_id] = value }
         opts.on("--app-version VERSION", "Pre-release version to filter builds") { |value| options[:app_version] = value }
@@ -21,6 +21,8 @@ module ASCTooling
         opts.on("--first-name NAME", "First name when creating a tester") { |value| options[:first_name] = value }
         opts.on("--last-name NAME", "Last name when creating a tester") { |value| options[:last_name] = value }
         opts.on("--create-if-missing", "Create a tester if the email does not already exist") { options[:create_if_missing] = true }
+        opts.on("--internal", "Create an internal beta group (team members only)") { options[:internal] = true }
+        opts.on("--all-builds", "Give the beta group access to all builds") { options[:all_builds] = true }
         opts.on("--notes TEXT", "Test notes (What to Test) for set-test-notes") { |value| options[:notes] = value }
         opts.on("--locale LOCALE", "Locale for test notes (default: en-US)") { |value| options[:locale] = value }
         opts.on("--dry-run", "Show what would happen without changing ASC") { options[:dry_run] = true }
@@ -49,6 +51,7 @@ module ASCTooling
     def run
       case @options[:command]
       when "status" then print_status
+      when "create-group" then create_group
       when "add-build" then add_build
       when "add-tester" then add_tester
       when "remove-tester" then remove_tester
@@ -99,6 +102,49 @@ module ASCTooling
         puts "  Testers (#{group[:tester_count]}): #{group[:testers].join(', ')}" unless group[:testers].empty?
         puts "  Builds (#{group[:build_count]}): #{group[:builds].join(', ')}" unless group[:builds].empty?
       end
+    end
+
+    def create_group
+      group_name = @options[:group_name]
+      raise OptionParser::MissingArgument, "--group-name is required for create-group" if ASCTooling::Client.blank?(group_name)
+
+      app = @asc.find_app!(@options[:bundle_id])
+      existing = beta_groups(app.id).find { |item| item.dig("attributes", "name") == group_name }
+
+      if existing
+        puts "No change needed: beta group #{group_name.inspect} already exists."
+        return
+      end
+
+      if @options[:dry_run]
+        puts "Dry run: would create beta group #{group_name.inspect} for #{app.name}."
+        return
+      end
+
+      @asc.request_json(
+        "POST",
+        "/v1/betaGroups",
+        body: {
+          data: {
+            type: "betaGroups",
+            attributes: {
+              name: group_name,
+              isInternalGroup: @options[:internal] ? true : false,
+              hasAccessToAllBuilds: @options[:all_builds] ? true : false
+            },
+            relationships: {
+              app: {
+                data: {
+                  type: "apps",
+                  id: app.id
+                }
+              }
+            }
+          }
+        }
+      )
+
+      puts "Created beta group #{group_name.inspect} for #{app.name}."
     end
 
     def add_build
@@ -387,7 +433,7 @@ module ASCTooling
         next_group_ids.empty? ? 1 : 0
       ]
 
-      best_score < next_score ? best_tester : nil
+      (best_score <=> next_score) == -1 ? best_tester : nil
     end
 
     def fetch_beta_tester!(tester_id)
