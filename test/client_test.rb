@@ -1,4 +1,5 @@
 require "minitest/autorun"
+require "minitest/mock"
 require "ostruct"
 
 require "asc_tooling/client"
