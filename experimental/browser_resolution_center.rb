@@ -24,7 +24,7 @@ module Experimental
       parse_options!
       cookie_payload = JSON.parse(File.read(@options[:cookie_json]))
       @provider_id = cookie_payload.fetch("provider_id")
-      @cookie_header = build_cookie_header(cookie_payload.fetch("cookies"))
+      @cookie_header = build_cookie_header(cookie_payload.fetch("cookies"), URI(TUNES_BASE_URL).host)
 
       submission_id = @options[:submission_id] || find_submission_id_from_bundle!
 
@@ -69,8 +69,15 @@ module Experimental
       raise OptionParser::MissingArgument, "pass --submission-id or --bundle-id" unless @options[:submission_id] || @options[:bundle_id]
     end
 
-    def build_cookie_header(cookie_data)
-      cookie_data.map { |c| "#{c.fetch('name')}=#{c.fetch('value')}" }.join("; ")
+    def build_cookie_header(cookie_data, target_host)
+      cookie_data.select { |c| cookie_matches_host?(c.fetch("domain"), target_host) }
+                 .map { |c| "#{c.fetch('name')}=#{c.fetch('value')}" }
+                 .join("; ")
+    end
+
+    def cookie_matches_host?(cookie_domain, host)
+      cookie_domain = cookie_domain.downcase.sub(/\A\./, "")
+      host.downcase.end_with?(cookie_domain)
     end
 
     def tunes_request(path, params = {})
@@ -83,6 +90,7 @@ module Experimental
       request["Cookie"] = @cookie_header
       request["X-Apple-Widget-Key"] = ""
       request["X-Requested-With"] = "XMLHttpRequest"
+      request["X-Apple-Provider-Id"] = @provider_id if @provider_id
 
       http = Net::HTTP.new(uri.host, uri.port)
       http.use_ssl = true
