@@ -1,22 +1,17 @@
 #!/usr/bin/env ruby
 
 require "json"
+require "net/http"
 require "optparse"
 require "open3"
 require "time"
+require "uri"
 require_relative "../lib/asc_tooling"
-
-begin
-  require "http/cookie_jar"
-  require "http/cookie"
-  require "spaceship"
-rescue LoadError => e
-  warn "This experimental script requires additional gems: gem install fastlane http-cookie"
-  raise e
-end
 
 module Experimental
   class BrowserResolutionCenter
+    TUNES_BASE_URL = "https://appstoreconnect.apple.com/iris/v1".freeze
+
     def initialize(argv)
       @argv = argv
       @options = {
@@ -28,32 +23,19 @@ module Experimental
     def run
       parse_options!
       cookie_payload = JSON.parse(File.read(@options[:cookie_json]))
-      provider_id = cookie_payload.fetch("provider_id")
-      jar = build_cookie_jar(cookie_payload.fetch("cookies"))
+      @provider_id = cookie_payload.fetch("provider_id")
+      @cookie_header = build_cookie_header(cookie_payload.fetch("cookies"))
 
       submission_id = @options[:submission_id] || find_submission_id_from_bundle!
 
-      client = Spaceship::ConnectAPI::Tunes::Client.new(
-        cookie: jar,
-        current_team_id: provider_id
-      )
-
-      thread_response = client.get_resolution_center_threads(
-        filter: { reviewSubmission: submission_id },
-        includes: "reviewSubmission"
-      )
-      threads = thread_response.to_models
+      threads = get_resolution_center_threads(submission_id)
       raise ArgumentError, "no resolution center thread found for submission #{submission_id}" if threads.empty?
 
       thread = threads.first
-      message_response = client.get_resolution_center_messages(
-        thread_id: thread.id,
-        includes: "rejections,fromActor"
-      )
-      messages = message_response.to_models
-      raise ArgumentError, "no resolution center messages found for thread #{thread.id}" if messages.empty?
+      messages = get_resolution_center_messages(thread["id"])
+      raise ArgumentError, "no resolution center messages found for thread #{thread['id']}" if messages.empty?
 
-      latest = messages.max_by { |message| message.created_date || Time.at(0) }
+      latest = messages.max_by { |m| m.dig("attributes", "createdDate") || "0000" }
       payload = format_output(submission_id, thread, latest)
 
       if @options[:json]
@@ -87,20 +69,45 @@ module Experimental
       raise OptionParser::MissingArgument, "pass --submission-id or --bundle-id" unless @options[:submission_id] || @options[:bundle_id]
     end
 
-    def build_cookie_jar(cookie_data)
-      jar = HTTP::CookieJar.new
-      cookie_data.each do |row|
-        cookie = HTTP::Cookie.new(
-          row.fetch("name"),
-          row.fetch("value"),
-          domain: row.fetch("domain"),
-          path: row.fetch("path"),
-          secure: row.fetch("secure"),
-          expires: row["expires"] ? Time.at(row["expires"]) : nil
-        )
-        jar.add(cookie)
-      end
-      jar
+    def build_cookie_header(cookie_data)
+      cookie_data.map { |c| "#{c.fetch('name')}=#{c.fetch('value')}" }.join("; ")
+    end
+
+    def tunes_request(path, params = {})
+      uri = URI("#{TUNES_BASE_URL}/#{path}")
+      uri.query = URI.encode_www_form(params) unless params.empty?
+
+      request = Net::HTTP::Get.new(uri)
+      request["Accept"] = "application/json"
+      request["Content-Type"] = "application/json"
+      request["Cookie"] = @cookie_header
+      request["X-Apple-Widget-Key"] = ""
+      request["X-Requested-With"] = "XMLHttpRequest"
+
+      http = Net::HTTP.new(uri.host, uri.port)
+      http.use_ssl = true
+      http.open_timeout = 30
+      http.read_timeout = 60
+
+      response = http.request(request)
+      raise "Tunes API request failed (#{response.code}): #{response.body}" unless response.is_a?(Net::HTTPSuccess)
+
+      JSON.parse(response.body)
+    end
+
+    def get_resolution_center_threads(submission_id)
+      data = tunes_request("reviewCenterThreads", {
+                             "filter[reviewSubmission]" => submission_id,
+                             "include" => "reviewSubmission"
+                           })
+      data.fetch("data", [])
+    end
+
+    def get_resolution_center_messages(thread_id)
+      data = tunes_request("reviewCenterThreads/#{thread_id}/reviewCenterMessages", {
+                             "include" => "rejections,fromActor"
+                           })
+      data.fetch("data", [])
     end
 
     def find_submission_id_from_bundle!
@@ -140,15 +147,16 @@ module Experimental
     end
 
     def format_output(submission_id, thread, message)
-      rejection = extract_rejection(Array(message.rejections).first)
+      attrs = message.fetch("attributes", {})
+      rejection = extract_rejection(message, attrs)
       {
         submission_id: submission_id,
-        thread_id: thread.id,
-        thread_type: thread.thread_type,
-        message_id: message.id,
-        created_date: normalize_time(message.created_date),
-        from_actor_type: actor_type(message.from_actor),
-        body: message_body(message),
+        thread_id: thread["id"],
+        thread_type: thread.dig("attributes", "threadType"),
+        message_id: message["id"],
+        created_date: attrs["createdDate"],
+        from_actor_type: attrs["fromActorType"],
+        body: attrs["messageBody"] || attrs["body"],
         rejection: rejection
       }
     end
@@ -163,37 +171,15 @@ module Experimental
       puts payload[:body].to_s.strip
     end
 
-    def normalize_time(value)
-      return nil if value.nil?
-      return value.iso8601 if value.respond_to?(:iso8601)
+    def extract_rejection(message, attrs)
+      included = message["relationships"]&.dig("rejections", "data")
+      return nil if included.nil? || included.empty?
 
-      value.to_s
-    end
-
-    def actor_type(value)
-      return nil if value.nil?
-      return value.actor_type if value.respond_to?(:actor_type)
-      return value.type if value.respond_to?(:type)
-
-      value.to_s
-    end
-
-    def message_body(message)
-      return message.message_body if message.respond_to?(:message_body)
-      return message.body if message.respond_to?(:body)
-
-      message.to_s
-    end
-
-    def extract_rejection(rejection)
-      return nil if rejection.nil?
-
-      reasons = rejection.respond_to?(:reasons) ? Array(rejection.reasons) : []
-      reason = reasons.first || {}
+      reason = attrs["rejectionReasons"]&.first || {}
       {
-        id: rejection.respond_to?(:id) ? rejection.id : nil,
-        reason_code: reason["reasonCode"] || reason[:reasonCode],
-        reason_description: reason["reasonDescription"] || reason[:reasonDescription]
+        id: included.first&.fetch("id", nil),
+        reason_code: reason["reasonCode"],
+        reason_description: reason["reasonDescription"]
       }
     end
   end
