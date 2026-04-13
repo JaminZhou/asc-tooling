@@ -253,4 +253,42 @@ class ASCToolingClientTest < Minitest::Test
     client.build_candidates("app-123")
     refute payloads.first[:params].key?("filter[preReleaseVersion.version]")
   end
+
+  def test_camelize_keys_converts_snake_case
+    client = ASCTooling::Client.allocate
+    result = client.send(:camelize_keys, {
+                           whats_new: "notes",
+                           marketing_url: "https://example.com",
+                           privacy_policy_url: "https://example.com/privacy",
+                           copyright: "2026 Test",
+                           description: "A description"
+                         })
+
+    assert_equal({
+                   "whatsNew" => "notes",
+                   "marketingUrl" => "https://example.com",
+                   "privacyPolicyUrl" => "https://example.com/privacy",
+                   "copyright" => "2026 Test",
+                   "description" => "A description"
+                 }, result)
+  end
+
+  def test_update_resource_sends_camelized_attributes
+    client = ASCTooling::Client.allocate
+    payloads = []
+
+    client.define_singleton_method(:request_json) do |_method, _path, params: nil, body: nil|
+      payloads << body
+      { "data" => {} }
+    end
+
+    client.update_resource("appStoreVersionLocalizations", "loc-1",
+                           attributes: { whats_new: "notes", support_url: "https://example.com" })
+
+    attrs = payloads.first.dig(:data, :attributes)
+    assert_equal "notes", attrs["whatsNew"]
+    assert_equal "https://example.com", attrs["supportUrl"]
+    refute attrs.key?(:whats_new)
+    refute attrs.key?(:support_url)
+  end
 end

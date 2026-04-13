@@ -265,7 +265,7 @@ module ASCTooling
       request_json(
         "PATCH",
         "/v1/#{type}/#{id}",
-        body: { data: { type: type, id: id, attributes: attributes } }
+        body: { data: { type: type, id: id, attributes: camelize_keys(attributes) } }
       )
     end
 
@@ -429,6 +429,10 @@ module ASCTooling
         }
       ).fetch("data")
       LocalizationData.new(data)
+    end
+
+    def camelize_keys(hash)
+      hash.transform_keys { |key| key.to_s.gsub(/_([a-z])/) { ::Regexp.last_match(1).upcase } }
     end
 
     def reorder_screenshots(set_id, new_screenshot_id, position)

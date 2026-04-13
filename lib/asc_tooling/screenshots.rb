@@ -66,6 +66,9 @@ module ASCTooling
       exit 1
     end
 
+    POLL_INTERVAL_SECONDS = 2
+    POLL_ATTEMPTS = 30
+
     VALID_DISPLAY_TYPES = %w[
       APP_IPHONE_35 APP_IPHONE_40 APP_IPHONE_47 APP_IPHONE_55
       APP_IPHONE_58 APP_IPHONE_61 APP_IPHONE_65 APP_IPHONE_67
@@ -83,6 +86,19 @@ module ASCTooling
 
     def platform
       @platform ||= @asc.platform(@options[:platform])
+    end
+
+    def wait_for_screenshot!(screenshot_id)
+      POLL_ATTEMPTS.times do
+        data = @asc.request_json("GET", "/v1/appScreenshots/#{screenshot_id}").fetch("data")
+        state = data.dig("attributes", "assetDeliveryState", "state") || "UNKNOWN"
+        return data if state == "COMPLETE"
+        raise ArgumentError, "screenshot #{screenshot_id} failed processing" if state == "FAILED"
+
+        sleep(POLL_INTERVAL_SECONDS)
+      end
+
+      raise ArgumentError, "timed out waiting for screenshot #{screenshot_id} processing"
     end
 
     def display_type
@@ -143,11 +159,13 @@ module ASCTooling
       end
 
       uploaded = source_paths.each_with_index.map do |path, index|
-        @asc.upload_screenshot(
+        screenshot = @asc.upload_screenshot(
           screenshot_set.id,
           path: path,
           position: @options[:keep_existing] ? nil : index
         )
+        wait_for_screenshot!(screenshot.id) if @options[:wait_for_processing]
+        screenshot
       end
 
       puts "Uploaded #{uploaded.size} screenshots to #{app.bundle_id} #{@options[:locale]} #{display_type}"
