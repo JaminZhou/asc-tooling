@@ -112,10 +112,11 @@ module Experimental
     end
 
     def get_resolution_center_messages(thread_id)
-      data = tunes_request("reviewCenterThreads/#{thread_id}/reviewCenterMessages", {
-                             "include" => "rejections,fromActor"
-                           })
-      data.fetch("data", [])
+      response = tunes_request("reviewCenterThreads/#{thread_id}/reviewCenterMessages", {
+                                 "include" => "rejections,fromActor"
+                               })
+      @included = response.fetch("included", [])
+      response.fetch("data", [])
     end
 
     def find_submission_id_from_bundle!
@@ -179,13 +180,18 @@ module Experimental
       puts payload[:body].to_s.strip
     end
 
-    def extract_rejection(message, attrs)
-      included = message["relationships"]&.dig("rejections", "data")
-      return nil if included.nil? || included.empty?
+    def extract_rejection(message, _attrs)
+      refs = message.dig("relationships", "rejections", "data")
+      return nil if refs.nil? || refs.empty?
 
-      reason = attrs["rejectionReasons"]&.first || {}
+      ref = refs.first
+      rejection = @included.find { |r| r["type"] == ref["type"] && r["id"] == ref["id"] }
+      return { id: ref["id"], reason_code: nil, reason_description: nil } unless rejection
+
+      reasons = rejection.dig("attributes", "reasons") || []
+      reason = reasons.first || {}
       {
-        id: included.first&.fetch("id", nil),
+        id: rejection["id"],
         reason_code: reason["reasonCode"],
         reason_description: reason["reasonDescription"]
       }
