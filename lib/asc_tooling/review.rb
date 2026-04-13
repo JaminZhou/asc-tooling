@@ -129,15 +129,11 @@ module ASCTooling
       app = @asc.find_app!(@options[:bundle_id])
       version = @asc.find_editable_version!(app, platform: platform, app_version: @options[:app_version])
 
+      desired_release_type = nil
       if @options[:release_type]
         desired_release_type = ASCTooling::Client::RELEASE_TYPE_MAP.fetch(@options[:release_type]) do
           raise OptionParser::InvalidArgument, "unsupported release type: #{@options[:release_type]}"
         end
-        if version.release_type != desired_release_type
-          @asc.update_resource("appStoreVersions", version.id,
-                               attributes: { releaseType: desired_release_type })
-        end
-        version = @asc.find_editable_version!(app, platform: platform, app_version: @options[:app_version])
       end
 
       submitted_submission = review_submissions(app.id).find { |submission| submission.dig("attributes", "state") == "WAITING_FOR_REVIEW" }
@@ -149,8 +145,16 @@ module ASCTooling
       target_build = find_target_build!(app.id, version.version_string)
 
       if @options[:dry_run]
-        puts "Dry run: would attach build #{target_build.dig('attributes', 'version')} to version #{version.version_string} and submit for review."
+        parts = ["would attach build #{target_build.dig('attributes', 'version')} to version #{version.version_string}"]
+        parts << "set release type to #{@options[:release_type]}" if desired_release_type && version.release_type != desired_release_type
+        puts "Dry run: #{parts.join(', ')} and submit for review."
         return
+      end
+
+      if desired_release_type && version.release_type != desired_release_type
+        @asc.update_resource("appStoreVersions", version.id,
+                             attributes: { releaseType: desired_release_type })
+        version = @asc.find_editable_version!(app, platform: platform, app_version: @options[:app_version])
       end
 
       if version.build.nil? || version.build.version != target_build.dig("attributes", "version")

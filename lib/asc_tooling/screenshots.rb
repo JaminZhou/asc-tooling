@@ -141,15 +141,21 @@ module ASCTooling
 
       app = @asc.find_app!(@options[:bundle_id])
       version = @asc.find_editable_version!(app, platform: platform, app_version: @options[:app_version])
-      version_localization = @asc.find_or_create_version_localization!(version, @options[:locale])
-      screenshot_set = @asc.find_or_create_screenshot_set!(version_localization, display_type)
 
       if @options[:dry_run]
-        existing_count = screenshot_set.screenshots.size
+        version_localization = @asc.find_version_localization(version, @options[:locale])
+        existing_count = 0
+        if version_localization
+          screenshot_set = @asc.find_screenshot_set(version_localization, display_type)
+          existing_count = screenshot_set&.screenshots&.size || 0
+        end
         action = @options[:keep_existing] ? "append" : "replace #{existing_count} existing with"
         puts "Dry run: would #{action} #{source_paths.size} screenshots for #{app.bundle_id} #{@options[:locale]} #{display_type}."
         return
       end
+
+      version_localization = @asc.find_or_create_version_localization!(version, @options[:locale])
+      screenshot_set = @asc.find_or_create_screenshot_set!(version_localization, display_type)
 
       unless @options[:keep_existing]
         screenshot_set.screenshots.each do |screenshot|
