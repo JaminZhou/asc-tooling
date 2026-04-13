@@ -4,10 +4,16 @@ require "json"
 require "optparse"
 require "open3"
 require "time"
-require "http/cookie_jar"
-require "http/cookie"
-require "spaceship"
 require_relative "../lib/asc_tooling"
+
+begin
+  require "http/cookie_jar"
+  require "http/cookie"
+  require "spaceship"
+rescue LoadError => e
+  warn "This experimental script requires additional gems: gem install fastlane http-cookie"
+  raise e
+end
 
 module Experimental
   class BrowserResolutionCenter
