@@ -103,7 +103,7 @@ module ASCTooling
 
     def display_type
       type = @options[:display_type]
-      raise ArgumentError, "unsupported screenshot display type: #{type}" unless VALID_DISPLAY_TYPES.include?(type)
+      warn "warning: unrecognized screenshot display type: #{type}" unless VALID_DISPLAY_TYPES.include?(type)
 
       type
     end

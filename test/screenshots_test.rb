@@ -9,11 +9,13 @@ class ASCToolingScreenshotsTest < Minitest::Test
     assert_includes types, "APP_APPLE_TV"
   end
 
-  def test_display_type_raises_for_invalid_type
+  def test_display_type_warns_for_unrecognized_type
     screenshots = ASCTooling::Screenshots.allocate
-    screenshots.instance_variable_set(:@options, { display_type: "INVALID_TYPE" })
+    screenshots.instance_variable_set(:@options, { display_type: "APP_APPLE_VISION_PRO" })
 
-    assert_raises(ArgumentError) { screenshots.send(:display_type) }
+    output = capture_io { screenshots.send(:display_type) }
+    assert_match(/unrecognized screenshot display type/, output[1])
+    assert_equal "APP_APPLE_VISION_PRO", screenshots.send(:display_type)
   end
 
   def test_display_type_returns_valid_type
