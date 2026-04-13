@@ -1,6 +1,5 @@
 require "json"
 require "optparse"
-require "spaceship"
 
 module ASCTooling
   class Screenshots
@@ -31,6 +30,7 @@ module ASCTooling
         opts.on("--key-id KEY_ID", "ASC API key id") { |value| options[:key_id] = value }
         opts.on("--issuer-id ISSUER_ID", "ASC API issuer id") { |value| options[:issuer_id] = value }
         opts.on("--key-path PATH", "Path to ASC API .p8 key") { |value| options[:key_path] = value }
+        opts.on("--dry-run", "Print what would happen without making changes") { options[:dry_run] = true }
         opts.on("--json", "Print status output as JSON") { options[:json] = true }
       end
 
@@ -66,6 +66,19 @@ module ASCTooling
       exit 1
     end
 
+    VALID_DISPLAY_TYPES = %w[
+      APP_IPHONE_35 APP_IPHONE_40 APP_IPHONE_47 APP_IPHONE_55
+      APP_IPHONE_58 APP_IPHONE_61 APP_IPHONE_65 APP_IPHONE_67
+      APP_IPAD_97 APP_IPAD_105 APP_IPAD_PRO_3GEN_11 APP_IPAD_PRO_3GEN_129
+      APP_IPAD_PRO_129 APP_DESKTOP APP_WATCH_SERIES_3 APP_WATCH_SERIES_4
+      APP_WATCH_SERIES_7 APP_WATCH_ULTRA APP_APPLE_TV
+      IMESSAGE_APP_IPHONE_40 IMESSAGE_APP_IPHONE_47 IMESSAGE_APP_IPHONE_55
+      IMESSAGE_APP_IPHONE_58 IMESSAGE_APP_IPHONE_61 IMESSAGE_APP_IPHONE_65
+      IMESSAGE_APP_IPHONE_67 IMESSAGE_APP_IPAD_97 IMESSAGE_APP_IPAD_105
+      IMESSAGE_APP_IPAD_PRO_3GEN_11 IMESSAGE_APP_IPAD_PRO_3GEN_129
+      IMESSAGE_APP_IPAD_PRO_129
+    ].freeze
+
     private
 
     def platform
@@ -74,8 +87,7 @@ module ASCTooling
 
     def display_type
       type = @options[:display_type]
-      valid = Spaceship::ConnectAPI::AppScreenshotSet::DisplayType::ALL
-      raise ArgumentError, "unsupported screenshot display type: #{type}" unless valid.include?(type)
+      raise ArgumentError, "unsupported screenshot display type: #{type}" unless VALID_DISPLAY_TYPES.include?(type)
 
       type
     end
@@ -108,7 +120,7 @@ module ASCTooling
     end
 
     def upload
-      source_paths = Dir.glob(File.join(File.expand_path(@options[:source_dir]), @options[:pattern])).sort
+      source_paths = Dir.glob(File.join(File.expand_path(@options[:source_dir]), @options[:pattern]))
       raise ArgumentError, "no screenshots found in #{@options[:source_dir]} matching #{@options[:pattern]}" if source_paths.empty?
 
       app = @asc.find_app!(@options[:bundle_id])
@@ -116,18 +128,24 @@ module ASCTooling
       version_localization = @asc.find_or_create_version_localization!(version, @options[:locale])
       screenshot_set = @asc.find_or_create_screenshot_set!(version_localization, display_type)
 
+      if @options[:dry_run]
+        existing_count = screenshot_set.screenshots.size
+        action = @options[:keep_existing] ? "append" : "replace #{existing_count} existing with"
+        puts "Dry run: would #{action} #{source_paths.size} screenshots for #{app.bundle_id} #{@options[:locale]} #{display_type}."
+        return
+      end
+
       unless @options[:keep_existing]
-        Array(screenshot_set.app_screenshots).each do |screenshot|
-          screenshot.delete!(client: @asc.client)
+        screenshot_set.screenshots.each do |screenshot|
+          @asc.delete_resource("/v1/appScreenshots/#{screenshot.id}")
         end
-        screenshot_set = Spaceship::ConnectAPI::AppScreenshotSet.get(client: @asc.client, app_screenshot_set_id: screenshot_set.id)
+        screenshot_set = @asc.find_or_create_screenshot_set!(version_localization, display_type)
       end
 
       uploaded = source_paths.each_with_index.map do |path, index|
-        screenshot_set.upload_screenshot(
-          client: @asc.client,
+        @asc.upload_screenshot(
+          screenshot_set.id,
           path: path,
-          wait_for_processing: @options[:wait_for_processing],
           position: @options[:keep_existing] ? nil : index
         )
       end
@@ -136,11 +154,11 @@ module ASCTooling
     end
 
     def summary_for_set(screenshot_set)
-      screenshots = Array(screenshot_set&.app_screenshots).map do |screenshot|
+      screenshots = (screenshot_set&.screenshots || []).map do |screenshot|
         {
           id: screenshot.id,
           file_name: screenshot.file_name,
-          state: screenshot.asset_delivery_state&.fetch("state", nil) || "UNKNOWN"
+          state: screenshot.asset_delivery_state&.dig("state") || "UNKNOWN"
         }
       end
 

@@ -1,10 +1,7 @@
-require "minitest/autorun"
-require "ostruct"
+require_relative "test_helper"
 require "stringio"
 require "tmpdir"
 require "zlib"
-
-require "asc_tooling/sales"
 
 class ASCToolingSalesTest < Minitest::Test
   class FakeClient

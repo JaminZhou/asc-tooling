@@ -127,9 +127,9 @@ module Experimental
     def auth_command_args
       auth_options = ASCTooling::Client.auth_options_from(@options)
       args = []
-      args.concat(["--key-id", auth_options[:key_id]]) unless ASCTooling::Client.blank?(auth_options[:key_id])
-      args.concat(["--issuer-id", auth_options[:issuer_id]]) unless ASCTooling::Client.blank?(auth_options[:issuer_id])
-      args.concat(["--key-path", auth_options[:key_path]]) unless ASCTooling::Client.blank?(auth_options[:key_path])
+      args.push("--key-id", auth_options[:key_id]) unless ASCTooling::Client.blank?(auth_options[:key_id])
+      args.push("--issuer-id", auth_options[:issuer_id]) unless ASCTooling::Client.blank?(auth_options[:issuer_id])
+      args.push("--key-path", auth_options[:key_path]) unless ASCTooling::Client.blank?(auth_options[:key_path])
       args
     end
 
@@ -152,9 +152,7 @@ module Experimental
       puts "Thread: #{payload[:thread_id]} (#{payload[:thread_type]})"
       puts "Message: #{payload[:message_id]}"
       puts "Created: #{payload[:created_date]}" if payload[:created_date]
-      if payload[:rejection]
-        puts "Reason: #{payload[:rejection][:reason_code]} - #{payload[:rejection][:reason_description]}"
-      end
+      puts "Reason: #{payload[:rejection][:reason_code]} - #{payload[:rejection][:reason_description]}" if payload[:rejection]
       puts
       puts payload[:body].to_s.strip
     end

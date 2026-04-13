@@ -54,6 +54,7 @@ module ASCTooling
         opts.on("--key-id KEY_ID", "ASC API key id") { |value| options[:key_id] = value }
         opts.on("--issuer-id ISSUER_ID", "ASC API issuer id") { |value| options[:issuer_id] = value }
         opts.on("--key-path PATH", "Path to ASC API .p8 key") { |value| options[:key_path] = value }
+        opts.on("--dry-run", "Print what would happen without making changes") { options[:dry_run] = true }
         opts.on("--json", "Print status output as JSON") { options[:json] = true }
       end
 
@@ -161,12 +162,24 @@ module ASCTooling
       app_info_attributes = resolved_attributes(APP_INFO_FIELD_OPTIONS)
       version_attributes = resolved_attributes(VERSION_FIELD_OPTIONS)
       version_direct_attributes = resolved_attributes(VERSION_DIRECT_OPTIONS)
-      raise OptionParser::MissingArgument, "no metadata fields provided" if app_info_attributes.empty? && version_attributes.empty? && version_direct_attributes.empty?
+      if app_info_attributes.empty? && version_attributes.empty? && version_direct_attributes.empty?
+        raise OptionParser::MissingArgument,
+              "no metadata fields provided"
+      end
+
+      if @options[:dry_run]
+        sections = []
+        sections << "version info (#{version_direct_attributes.keys.join(', ')})" unless version_direct_attributes.empty?
+        sections << "app info (#{app_info_attributes.keys.join(', ')})" unless app_info_attributes.empty?
+        sections << "version metadata (#{version_attributes.keys.join(', ')})" unless version_attributes.empty?
+        puts "Dry run: would update #{sections.join(' and ')} for #{@options[:bundle_id]} #{@options[:locale]} on version #{version.version_string}."
+        return
+      end
 
       updated_sections = []
 
       unless version_direct_attributes.empty?
-        version.update(client: @asc.client, attributes: version_direct_attributes)
+        @asc.update_resource("appStoreVersions", version.id, attributes: version_direct_attributes)
         updated_sections << "version info"
       end
 
@@ -176,13 +189,13 @@ module ASCTooling
           @options[:locale],
           name: app_info_attributes[:name]
         )
-        app_info_localization.update(client: @asc.client, attributes: app_info_attributes)
+        @asc.update_resource("appInfoLocalizations", app_info_localization.id, attributes: app_info_attributes)
         updated_sections << "app info"
       end
 
       unless version_attributes.empty?
         version_localization = @asc.find_or_create_version_localization!(version, @options[:locale])
-        version_localization.update(client: @asc.client, attributes: version_attributes)
+        @asc.update_resource("appStoreVersionLocalizations", version_localization.id, attributes: version_attributes)
         updated_sections << "version metadata"
       end
 

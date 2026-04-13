@@ -1,7 +1,7 @@
 require "digest/md5"
 require "json"
 require "optparse"
-require "spaceship"
+require "digest"
 
 module ASCTooling
   class IAP
@@ -40,6 +40,7 @@ module ASCTooling
         opts.on("--key-id KEY_ID", "ASC API key id") { |value| options[:key_id] = value }
         opts.on("--issuer-id ISSUER_ID", "ASC API issuer id") { |value| options[:issuer_id] = value }
         opts.on("--key-path PATH", "Path to ASC API .p8 key") { |value| options[:key_path] = value }
+        opts.on("--dry-run", "Print what would happen without making changes") { options[:dry_run] = true }
         opts.on("--json", "Print status output as JSON") { options[:json] = true }
       end
 
@@ -130,6 +131,13 @@ module ASCTooling
           next
         end
 
+        if @options[:dry_run]
+          action = existing ? "replace" : "upload"
+          puts "Dry run: would #{action} review screenshot for #{product_label(iap)}."
+          changed += 1
+          next
+        end
+
         if existing
           @asc.request_json("DELETE", "/v1/inAppPurchaseAppStoreReviewScreenshots/#{existing['id']}")
           puts "Deleted review screenshot #{existing['id']} for #{product_label(iap)}."
@@ -157,7 +165,7 @@ module ASCTooling
           }
         ).fetch("data")
 
-        Spaceship::ConnectAPI::FileUploader.upload(created.dig("attributes", "uploadOperations") || [], bytes)
+        @asc.upload_asset(created.dig("attributes", "uploadOperations") || [], bytes)
 
         patched = @asc.request_json(
           "PATCH",
@@ -190,6 +198,12 @@ module ASCTooling
         existing = availability_data(iap["id"])
         if existing
           puts "No change needed: #{product_label(iap)} already has availability #{existing['id']}."
+          next
+        end
+
+        if @options[:dry_run]
+          puts "Dry run: would create availability for #{product_label(iap)} (#{availability_template[:territory_ids].size} territories)."
+          changed += 1
           next
         end
 
@@ -239,6 +253,12 @@ module ASCTooling
           next
         end
 
+        if @options[:dry_run]
+          puts "Dry run: would submit #{product_label(iap)} for review."
+          submitted += 1
+          next
+        end
+
         begin
           response = @asc.request_json(
             "POST",
@@ -258,7 +278,7 @@ module ASCTooling
             }
           )
         rescue ASCTooling::APIError => e
-          if api_error_codes(e.payload).include?(FIRST_IAP_REVIEW_ERROR)
+          if @asc.api_error_codes(e.payload).include?(FIRST_IAP_REVIEW_ERROR)
             raise ArgumentError, <<~MESSAGE.strip
               Apple still requires the app's first in-app purchase to be attached to the app version submission in the App Store Connect web UI.
               Use `asc-iap prepare` to automate screenshot and availability setup, then select the IAPs on the app version page before submitting that version for review.
@@ -351,9 +371,7 @@ module ASCTooling
         state = review_screenshot_state(current)
         return current if state == "COMPLETE"
 
-        if state == "FAILED"
-          raise ArgumentError, "review screenshot #{screenshot_id} failed processing"
-        end
+        raise ArgumentError, "review screenshot #{screenshot_id} failed processing" if state == "FAILED"
 
         sleep(POLL_INTERVAL_SECONDS)
       end
@@ -363,17 +381,6 @@ module ASCTooling
 
     def review_screenshot_state(data)
       data.dig("attributes", "assetDeliveryState", "state") || "UNKNOWN"
-    end
-
-    def api_error_codes(payload)
-      errors = payload.fetch("errors", [])
-      direct_codes = errors.filter_map { |error| error["code"] }
-      associated_codes = errors.flat_map do |error|
-        associated = error.dig("meta", "associatedErrors") || {}
-        associated.values.flatten.filter_map { |item| item["code"] }
-      end
-
-      (direct_codes + associated_codes).uniq
     end
 
     def optional_json(method, path, params: nil, body: nil)
@@ -400,8 +407,8 @@ module ASCTooling
         if product_ids.empty?
           iaps.sort_by { |item| item.dig("attributes", "productId").to_s }
         else
-          by_product_id = iaps.each_with_object({}) do |item, memo|
-            memo[item.dig("attributes", "productId")] = item
+          by_product_id = iaps.to_h do |item|
+            [item.dig("attributes", "productId"), item]
           end
           missing = product_ids.reject { |product_id| by_product_id.key?(product_id) }
           raise ArgumentError, "IAP product id(s) not found: #{missing.join(', ')}" unless missing.empty?
@@ -438,7 +445,8 @@ module ASCTooling
     def decode_territory_availability_id(value)
       decoded = JSON.parse(value.unpack1("m0"))
       decoded["t"]
-    rescue ArgumentError, JSON::ParserError, NoMethodError
+    rescue ArgumentError, JSON::ParserError, NoMethodError => e
+      warn "Warning: could not decode territory availability id #{value.inspect}: #{e.message}"
       nil
     end
 

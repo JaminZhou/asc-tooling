@@ -1,7 +1,4 @@
-require "minitest/autorun"
-require "ostruct"
-
-require "asc_tooling/review"
+require_relative "test_helper"
 
 class ASCToolingReviewTest < Minitest::Test
   FakeVersion = Struct.new(:id, :version_string, :app_store_state, keyword_init: true)

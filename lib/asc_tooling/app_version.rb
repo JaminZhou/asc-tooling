@@ -3,11 +3,6 @@ require "optparse"
 
 module ASCTooling
   class AppVersion
-    RELEASE_TYPE_MAP = {
-      "after-approval" => "AFTER_APPROVAL",
-      "manual" => "MANUAL"
-    }.freeze
-
     def self.run(argv = ARGV)
       options = {
         platform: "macos",
@@ -25,6 +20,7 @@ module ASCTooling
         opts.on("--key-id KEY_ID", "ASC API key id") { |value| options[:key_id] = value }
         opts.on("--issuer-id ISSUER_ID", "ASC API issuer id") { |value| options[:issuer_id] = value }
         opts.on("--key-path PATH", "Path to ASC API .p8 key") { |value| options[:key_path] = value }
+        opts.on("--dry-run", "Print what would happen without making changes") { options[:dry_run] = true }
         opts.on("--json", "Print output as JSON") { options[:json] = true }
       end
 
@@ -76,24 +72,29 @@ module ASCTooling
       }
 
       if @options[:release_type]
-        attributes[:releaseType] = RELEASE_TYPE_MAP.fetch(@options[:release_type]) do
+        attributes[:releaseType] = ASCTooling::Client::RELEASE_TYPE_MAP.fetch(@options[:release_type]) do
           raise OptionParser::InvalidArgument, "unsupported release type: #{@options[:release_type]}"
         end
       end
 
       attributes[:copyright] = @options[:copyright] if @options[:copyright]
 
+      if @options[:dry_run]
+        puts "Dry run: would create version #{@options[:version]} for #{app.name}."
+        return
+      end
+
       result = @asc.request_json("POST", "/v1/appStoreVersions", body: {
-        data: {
-          type: "appStoreVersions",
-          attributes: attributes,
-          relationships: {
-            app: {
-              data: { type: "apps", id: app.id }
-            }
-          }
-        }
-      })
+                                   data: {
+                                     type: "appStoreVersions",
+                                     attributes: attributes,
+                                     relationships: {
+                                       app: {
+                                         data: { type: "apps", id: app.id }
+                                       }
+                                     }
+                                   }
+                                 })
 
       version_data = result.fetch("data")
       attrs = version_data.fetch("attributes", {})

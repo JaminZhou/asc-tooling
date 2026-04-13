@@ -1,0 +1,55 @@
+AllCops:
+  TargetRubyVersion: 3.0
+  NewCops: enable
+  SuggestExtensions: false
+
+Style/StringLiterals:
+  EnforcedStyle: double_quotes
+
+Style/FrozenStringLiteralComment:
+  Enabled: false
+
+Style/Documentation:
+  Enabled: false
+
+Style/OpenStructUse:
+  Exclude:
+    - "test/**/*"
+
+Gemspec/DevelopmentDependencies:
+  Enabled: false
+
+Metrics/MethodLength:
+  Max: 70
+
+Metrics/ClassLength:
+  Max: 500
+
+Metrics/AbcSize:
+  Max: 80
+
+Metrics/CyclomaticComplexity:
+  Max: 20
+
+Metrics/PerceivedComplexity:
+  Max: 20
+
+Metrics/BlockLength:
+  Max: 60
+  Exclude:
+    - "test/**/*"
+    - "*.gemspec"
+
+Metrics/ParameterLists:
+  Max: 7
+
+Lint/UnusedMethodArgument:
+  Exclude:
+    - "test/**/*"
+
+Lint/UnusedBlockArgument:
+  Exclude:
+    - "test/**/*"
+
+Layout/LineLength:
+  Max: 150

@@ -127,11 +127,11 @@ module ASCTooling
       puts "Other units: #{format_units(summary[:other_units])}"
       puts "Total units: #{format_units(summary[:total_units])}"
 
-      unless summary[:by_country].empty?
-        puts "By country:"
-        summary[:by_country].each do |country_code, units|
-          puts "  #{country_code}: #{format_units(units)}"
-        end
+      return if summary[:by_country].empty?
+
+      puts "By country:"
+      summary[:by_country].each do |country_code, units|
+        puts "  #{country_code}: #{format_units(units)}"
       end
     end
 
