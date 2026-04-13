@@ -4,6 +4,7 @@ require "jwt"
 require "net/http"
 require "openssl"
 require "uri"
+require_relative "models"
 
 module ASCTooling
   class APIError < StandardError
