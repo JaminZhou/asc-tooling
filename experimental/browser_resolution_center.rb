@@ -24,7 +24,7 @@ module Experimental
       parse_options!
       cookie_payload = JSON.parse(File.read(@options[:cookie_json]))
       @provider_id = cookie_payload.fetch("provider_id")
-      @cookie_header = build_cookie_header(cookie_payload.fetch("cookies"), URI(TUNES_BASE_URL).host)
+      @cookie_header = build_cookie_header(cookie_payload.fetch("cookies"), URI(TUNES_BASE_URL))
 
       submission_id = @options[:submission_id] || find_submission_id_from_bundle!
 
@@ -69,15 +69,34 @@ module Experimental
       raise OptionParser::MissingArgument, "pass --submission-id or --bundle-id" unless @options[:submission_id] || @options[:bundle_id]
     end
 
-    def build_cookie_header(cookie_data, target_host)
-      cookie_data.select { |c| cookie_matches_host?(c.fetch("domain"), target_host) }
+    def build_cookie_header(cookie_data, target_uri)
+      host = target_uri.host.downcase
+      path = target_uri.path.empty? ? "/" : target_uri.path
+      now = Time.now
+
+      cookie_data.select { |c| cookie_applicable?(c, host, path, now) }
+                 .uniq { |c| c.fetch("name") }
                  .map { |c| "#{c.fetch('name')}=#{c.fetch('value')}" }
                  .join("; ")
     end
 
-    def cookie_matches_host?(cookie_domain, host)
-      cookie_domain = cookie_domain.downcase.sub(/\A\./, "")
-      host.downcase.end_with?(cookie_domain)
+    def cookie_applicable?(cookie, host, path, now)
+      return false unless domain_matches?(cookie.fetch("domain"), host)
+      return false unless path.start_with?(cookie.fetch("path", "/"))
+      # secure cookies are fine — all Apple endpoints are HTTPS
+      return false if cookie["expires"] && Time.at(cookie["expires"]) < now
+
+      true
+    end
+
+    def domain_matches?(cookie_domain, host)
+      cookie_domain = cookie_domain.downcase
+      if cookie_domain.start_with?(".")
+        suffix = cookie_domain[1..]
+        host == suffix || host.end_with?(".#{suffix}")
+      else
+        host == cookie_domain.downcase
+      end
     end
 
     def tunes_request(path, params = {})
