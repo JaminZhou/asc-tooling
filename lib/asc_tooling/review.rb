@@ -160,15 +160,9 @@ module ASCTooling
       if version.build.nil? || version.build.version != target_build.dig("attributes", "version")
         @asc.request_json(
           "PATCH",
-          "/v1/appStoreVersions/#{version.id}",
+          "/v1/appStoreVersions/#{version.id}/relationships/build",
           body: {
-            data: {
-              type: "appStoreVersions",
-              id: version.id,
-              relationships: {
-                build: { data: { type: "builds", id: target_build["id"] } }
-              }
-            }
+            data: { type: "builds", id: target_build["id"] }
           }
         )
         version = @asc.find_editable_version!(app, platform: platform, app_version: @options[:app_version])
