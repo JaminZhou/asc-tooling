@@ -32,11 +32,11 @@ module Experimental
       raise ArgumentError, "no resolution center thread found for submission #{submission_id}" if threads.empty?
 
       thread = threads.first
-      messages = get_resolution_center_messages(thread["id"])
+      messages, included = get_resolution_center_messages(thread["id"])
       raise ArgumentError, "no resolution center messages found for thread #{thread['id']}" if messages.empty?
 
       latest = messages.max_by { |m| m.dig("attributes", "createdDate") || "0000" }
-      payload = format_output(submission_id, thread, latest)
+      payload = format_output(submission_id, thread, latest, included)
 
       if @options[:json]
         puts JSON.pretty_generate(payload)
@@ -142,8 +142,7 @@ module Experimental
       response = tunes_request("reviewCenterThreads/#{thread_id}/reviewCenterMessages", {
                                  "include" => "rejections,fromActor"
                                })
-      @included = response.fetch("included", [])
-      response.fetch("data", [])
+      [response.fetch("data", []), response.fetch("included", [])]
     end
 
     def find_submission_id_from_bundle!
@@ -182,9 +181,9 @@ module Experimental
       args
     end
 
-    def format_output(submission_id, thread, message)
+    def format_output(submission_id, thread, message, included)
       attrs = message.fetch("attributes", {})
-      rejection = extract_rejection(message, attrs)
+      rejection = extract_rejection(message, included)
       {
         submission_id: submission_id,
         thread_id: thread["id"],
@@ -207,12 +206,12 @@ module Experimental
       puts payload[:body].to_s.strip
     end
 
-    def extract_rejection(message, _attrs)
+    def extract_rejection(message, included)
       refs = message.dig("relationships", "rejections", "data")
       return nil if refs.nil? || refs.empty?
 
       ref = refs.first
-      rejection = @included.find { |r| r["type"] == ref["type"] && r["id"] == ref["id"] }
+      rejection = included.find { |r| r["type"] == ref["type"] && r["id"] == ref["id"] }
       return { id: ref["id"], reason_code: nil, reason_description: nil } unless rejection
 
       reasons = rejection.dig("attributes", "reasons") || []
