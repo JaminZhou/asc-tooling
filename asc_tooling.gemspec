@@ -29,6 +29,8 @@ Gem::Specification.new do |spec|
   ]
   spec.require_paths = ["lib"]
 
-  spec.add_dependency "fastlane", ">= 2.220"
+  spec.add_dependency "jwt", ">= 2.1"
   spec.add_development_dependency "minitest", ">= 5.0"
+  spec.add_development_dependency "rubocop", ">= 1.0"
+  spec.metadata["rubygems_mfa_required"] = "true"
 end

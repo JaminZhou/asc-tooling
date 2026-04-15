@@ -1,7 +1,10 @@
+require "digest/md5"
 require "json"
+require "jwt"
 require "net/http"
-require "spaceship"
+require "openssl"
 require "uri"
+require_relative "models"
 
 module ASCTooling
   class APIError < StandardError
@@ -47,6 +50,17 @@ module ASCTooling
       "tvos" => "TV_OS"
     }.freeze
 
+    RELEASE_TYPE_MAP = {
+      "after-approval" => "AFTER_APPROVAL",
+      "manual" => "MANUAL"
+    }.freeze
+
+    JWT_DURATION_SECONDS = 1200
+    MAX_REDIRECTS = 5
+    DEFAULT_PAGE_LIMIT = 50
+    HTTP_OPEN_TIMEOUT = 30
+    HTTP_READ_TIMEOUT = 60
+
     def self.blank?(value)
       value.nil? || value.to_s.strip.empty?
     end
@@ -56,7 +70,7 @@ module ASCTooling
       return value unless blank?(value)
 
       env_names.each do |env_name|
-        env_value = ENV[env_name]
+        env_value = ENV.fetch(env_name, nil)
         return env_value unless blank?(env_value)
       end
 
@@ -71,8 +85,6 @@ module ASCTooling
       }
     end
 
-    attr_reader :client
-
     def initialize(key_id: nil, issuer_id: nil, key_path: nil)
       auth_options = self.class.auth_options_from(
         key_id: key_id,
@@ -82,7 +94,6 @@ module ASCTooling
       @key_id = auth_options[:key_id]
       @issuer_id = auth_options[:issuer_id]
       @key_path = auth_options[:key_path]
-      @client = Spaceship::ConnectAPI
       normalize_proxy_env!
       authenticate!
     end
@@ -95,10 +106,14 @@ module ASCTooling
     end
 
     def find_app!(bundle_id)
-      app = client.get_apps(filter: { bundleId: bundle_id }, limit: 1).first
-      raise ArgumentError, "app not found for bundle id #{bundle_id}" unless app
+      data = request_json("GET", "/v1/apps", params: {
+                            "filter[bundleId]" => bundle_id,
+                            "limit" => "1"
+                          })
+      app_data = data.fetch("data", []).first
+      raise ArgumentError, "app not found for bundle id #{bundle_id}" unless app_data
 
-      app
+      AppData.new(app_data)
     end
 
     def find_editable_version!(app, platform:, app_version: nil)
@@ -113,7 +128,7 @@ module ASCTooling
       data = request_json(
         "GET",
         "/v1/apps/#{app.id}/appStoreVersions",
-        params: filter.merge("include" => "build", "limit" => "50")
+        params: filter.merge("include" => "build", "limit" => DEFAULT_PAGE_LIMIT.to_s)
       )
       versions = data.fetch("data", [])
       versions.select! { |item| item.dig("attributes", "versionString") == app_version } if app_version
@@ -121,35 +136,49 @@ module ASCTooling
       selected = versions.max_by { |item| Gem::Version.new(item.dig("attributes", "versionString")) }
       raise ArgumentError, app_version ? "version #{app_version} not found" : "app store version not found" unless selected
 
-      Spaceship::ConnectAPI::AppStoreVersion.get(
-        app_store_version_id: selected["id"],
-        includes: "build"
-      )
+      included = data.fetch("included", [])
+      VersionData.new(selected, included: included)
     end
 
     def find_version_localization(version, locale)
-      version
-        .get_app_store_version_localizations(client: client, filter: { locale: locale }, limit: 50)
-        .find { |item| item.locale == locale }
+      data = request_json(
+        "GET",
+        "/v1/appStoreVersions/#{version.id}/appStoreVersionLocalizations",
+        params: { "filter[locale]" => locale, "limit" => DEFAULT_PAGE_LIMIT.to_s }
+      )
+      found = data.fetch("data", []).find { |item| item.dig("attributes", "locale") == locale }
+      found ? LocalizationData.new(found) : nil
     end
 
     def find_or_create_version_localization!(version, locale)
-      find_version_localization(version, locale) ||
-        version.create_app_store_version_localization(client: client, attributes: { locale: locale })
+      find_version_localization(version, locale) || create_version_localization(version, locale)
     end
 
+    LIVE_APP_INFO_STATES = %w[READY_FOR_SALE REMOVED_FROM_SALE].freeze
+
     def fetch_edit_app_info!(app)
-      app_info = app.fetch_edit_app_info(client: client)
+      data = request_json(
+        "GET",
+        "/v1/apps/#{app.id}/appInfos",
+        params: { "limit" => DEFAULT_PAGE_LIMIT.to_s }
+      )
+      records = data.fetch("data", [])
+      app_info = records.find { |r| !LIVE_APP_INFO_STATES.include?(r.dig("attributes", "appStoreState")) }
+      app_info ||= records.first
       raise ArgumentError, "editable app info not found" unless app_info
 
-      app_info
+      APIResource.new(app_info)
     end
 
     def find_app_info_localization(app, locale)
       app_info = fetch_edit_app_info!(app)
-      localization = app_info
-        .get_app_info_localizations(client: client, filter: { locale: locale }, limit: 50)
-        .find { |item| item.locale == locale }
+      data = request_json(
+        "GET",
+        "/v1/appInfos/#{app_info.id}/appInfoLocalizations",
+        params: { "filter[locale]" => locale, "limit" => DEFAULT_PAGE_LIMIT.to_s }
+      )
+      found = data.fetch("data", []).find { |item| item.dig("attributes", "locale") == locale }
+      localization = found ? LocalizationData.new(found) : nil
 
       [app_info, localization]
     end
@@ -189,23 +218,136 @@ module ASCTooling
     end
 
     def find_screenshot_set(version_localization, display_type)
-      version_localization
-        .get_app_screenshot_sets(
-          client: client,
-          filter: { screenshotDisplayType: display_type },
-          includes: "appScreenshots",
-          limit: 50
-        )
-        .find { |item| item.screenshot_display_type == display_type }
+      data = request_json(
+        "GET",
+        "/v1/appStoreVersionLocalizations/#{version_localization.id}/appScreenshotSets",
+        params: {
+          "filter[screenshotDisplayType]" => display_type,
+          "include" => "appScreenshots",
+          "limit" => DEFAULT_PAGE_LIMIT.to_s
+        }
+      )
+      included = data.fetch("included", [])
+      found = data.fetch("data", []).find { |item| item.dig("attributes", "screenshotDisplayType") == display_type }
+      found ? ScreenshotSetData.new(found, included: included) : nil
     end
 
     def find_or_create_screenshot_set!(version_localization, display_type)
       set = find_screenshot_set(version_localization, display_type)
-      set ||= version_localization.create_app_screenshot_set(
-        client: client,
-        attributes: { screenshotDisplayType: display_type }
+      unless set
+        created = request_json(
+          "POST",
+          "/v1/appScreenshotSets",
+          body: {
+            data: {
+              type: "appScreenshotSets",
+              attributes: { screenshotDisplayType: display_type },
+              relationships: {
+                appStoreVersionLocalization: {
+                  data: { type: "appStoreVersionLocalizations", id: version_localization.id }
+                }
+              }
+            }
+          }
+        ).fetch("data")
+        set = ScreenshotSetData.new(created)
+      end
+      set
+    end
+
+    def build_candidates(app_id, app_version = nil, limit: 20)
+      params = {
+        "filter[app]" => app_id,
+        "sort" => "-uploadedDate",
+        "limit" => limit.to_s
+      }
+      params["filter[preReleaseVersion.version]"] = app_version unless self.class.blank?(app_version)
+
+      request_json("GET", "/v1/builds", params: params).fetch("data", [])
+    end
+
+    def update_resource(type, id, attributes:)
+      request_json(
+        "PATCH",
+        "/v1/#{type}/#{id}",
+        body: { data: { type: type, id: id, attributes: camelize_keys(attributes) } }
       )
-      Spaceship::ConnectAPI::AppScreenshotSet.get(client: client, app_screenshot_set_id: set.id)
+    end
+
+    def delete_resource(path)
+      request_json("DELETE", path)
+    end
+
+    def upload_asset(operations, bytes)
+      operations.each do |operation|
+        uri = URI(operation["url"])
+        headers = (operation["requestHeaders"] || []).to_h { |h| [h["name"], h["value"]] }
+        chunk = bytes.byteslice(operation["offset"], operation["length"])
+
+        request = Net::HTTP::Put.new(uri)
+        headers.each { |k, v| request[k] = v }
+        request.body = chunk
+
+        Net::HTTP.start(uri.hostname, uri.port, use_ssl: uri.scheme == "https") do |http|
+          http.open_timeout = HTTP_OPEN_TIMEOUT
+          http.read_timeout = HTTP_READ_TIMEOUT
+          response = http.request(request)
+          raise APIError.new("PUT #{uri.path}", response.code.to_i, {}) unless response.code.to_i.between?(200, 299)
+        end
+      end
+    end
+
+    def upload_screenshot(set_id, path:, position: nil)
+      bytes = File.binread(path)
+      file_name = File.basename(path)
+
+      reserve = request_json(
+        "POST",
+        "/v1/appScreenshots",
+        body: {
+          data: {
+            type: "appScreenshots",
+            attributes: {
+              fileName: file_name,
+              fileSize: bytes.bytesize
+            },
+            relationships: {
+              appScreenshotSet: {
+                data: { type: "appScreenshotSets", id: set_id }
+              }
+            }
+          }
+        }
+      ).fetch("data")
+
+      upload_asset(reserve.dig("attributes", "uploadOperations") || [], bytes)
+
+      committed = request_json(
+        "PATCH",
+        "/v1/appScreenshots/#{reserve['id']}",
+        body: {
+          data: {
+            type: "appScreenshots",
+            id: reserve["id"],
+            attributes: {
+              uploaded: true,
+              sourceFileChecksum: Digest::MD5.hexdigest(bytes)
+            }
+          }
+        }
+      ).fetch("data")
+
+      if position
+        request_json(
+          "PATCH",
+          "/v1/appScreenshotSets/#{set_id}/relationships/appScreenshots",
+          body: {
+            data: reorder_screenshots(set_id, committed["id"], position)
+          }
+        )
+      end
+
+      ScreenshotData.new(committed)
     end
 
     def request_json(method, path, params: nil, body: nil)
@@ -240,6 +382,17 @@ module ASCTooling
       raise APIError.new("#{method} #{path}", response.code.to_i, payload)
     end
 
+    def api_error_codes(payload)
+      errors = payload.fetch("errors", [])
+      direct_codes = errors.filter_map { |error| error["code"] }
+      associated_codes = errors.flat_map do |error|
+        associated = error.dig("meta", "associatedErrors") || {}
+        associated.values.flatten.filter_map { |item| item["code"] }
+      end
+
+      (direct_codes + associated_codes).uniq
+    end
+
     def format_api_errors(payload)
       errors = payload.fetch("errors", [])
       return JSON.pretty_generate(payload) if errors.empty?
@@ -263,6 +416,40 @@ module ASCTooling
     end
 
     private
+
+    def create_version_localization(version, locale)
+      data = request_json(
+        "POST",
+        "/v1/appStoreVersionLocalizations",
+        body: {
+          data: {
+            type: "appStoreVersionLocalizations",
+            attributes: { locale: locale },
+            relationships: {
+              appStoreVersion: {
+                data: { type: "appStoreVersions", id: version.id }
+              }
+            }
+          }
+        }
+      ).fetch("data")
+      LocalizationData.new(data)
+    end
+
+    def camelize_keys(hash)
+      hash.transform_keys { |key| key.to_s.gsub(/_([a-z])/) { ::Regexp.last_match(1).upcase } }
+    end
+
+    def reorder_screenshots(set_id, new_screenshot_id, position)
+      data = request_json(
+        "GET",
+        "/v1/appScreenshotSets/#{set_id}/relationships/appScreenshots"
+      )
+      ids = data.fetch("data", []).map { |item| { type: "appScreenshots", id: item["id"] } }
+      ids.reject! { |item| item[:id] == new_screenshot_id }
+      ids.insert(position, { type: "appScreenshots", id: new_screenshot_id })
+      ids
+    end
 
     def request_response(method, path, params: nil, body: nil, accept: "application/json")
       uri = URI("https://api.appstoreconnect.apple.com#{path}")
@@ -290,8 +477,10 @@ module ASCTooling
       request
     end
 
-    def perform_request(uri, request, method:, body:, accept:, redirects_remaining: 5)
+    def perform_request(uri, request, method:, body:, accept:, redirects_remaining: MAX_REDIRECTS)
       response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true) do |http|
+        http.open_timeout = HTTP_OPEN_TIMEOUT
+        http.read_timeout = HTTP_READ_TIMEOUT
         http.request(request)
       end
 
@@ -314,38 +503,39 @@ module ASCTooling
     end
 
     def token
-      Spaceship::ConnectAPI.token.text
+      now = Time.now.to_i
+      return @token_text if @token_text && @token_expiry && now < @token_expiry - 60
+
+      payload = {
+        iss: @issuer_id,
+        iat: now,
+        exp: now + JWT_DURATION_SECONDS,
+        aud: "appstoreconnect-v1"
+      }
+      @token_text = JWT.encode(payload, @private_key, "ES256", { kid: @key_id })
+      @token_expiry = payload[:exp]
+      @token_text
     end
 
     def authenticate!
-      key_id = @key_id
-      issuer_id = @issuer_id
-      key_path = @key_path
-
       missing = []
-      missing << "key id" if self.class.blank?(key_id)
-      missing << "issuer id" if self.class.blank?(issuer_id)
-      missing << "key path" if self.class.blank?(key_path)
+      missing << "key id" if self.class.blank?(@key_id)
+      missing << "issuer id" if self.class.blank?(@issuer_id)
+      missing << "key path" if self.class.blank?(@key_path)
       raise ArgumentError, "missing #{missing.join(', ')}" unless missing.empty?
 
-      expanded_key_path = File.expand_path(key_path)
-      raise ArgumentError, "key file not found: #{key_path}" unless File.exist?(expanded_key_path)
+      expanded_key_path = File.expand_path(@key_path)
+      raise ArgumentError, "key file not found: #{@key_path}" unless File.exist?(expanded_key_path)
 
-      Spaceship::ConnectAPI.auth(
-        key_id: key_id,
-        issuer_id: issuer_id,
-        filepath: expanded_key_path,
-        duration: 1200,
-        in_house: false
-      )
+      @private_key = OpenSSL::PKey::EC.new(File.read(expanded_key_path))
     end
 
     def normalize_proxy_env!
-      if self.class.blank?(ENV["http_proxy"]) && !self.class.blank?(ENV["HTTP_PROXY"])
-        ENV["http_proxy"] = ENV["HTTP_PROXY"]
+      if self.class.blank?(ENV.fetch("http_proxy", nil)) && !self.class.blank?(ENV.fetch("HTTP_PROXY", nil))
+        ENV["http_proxy"] = ENV.fetch("HTTP_PROXY", nil)
       end
-      if self.class.blank?(ENV["https_proxy"]) && !self.class.blank?(ENV["HTTPS_PROXY"])
-        ENV["https_proxy"] = ENV["HTTPS_PROXY"]
+      if self.class.blank?(ENV.fetch("https_proxy", nil)) && !self.class.blank?(ENV.fetch("HTTPS_PROXY", nil))
+        ENV["https_proxy"] = ENV.fetch("HTTPS_PROXY", nil)
       end
 
       ENV.delete("HTTP_PROXY")

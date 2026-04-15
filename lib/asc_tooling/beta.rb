@@ -3,6 +3,10 @@ require "optparse"
 
 module ASCTooling
   class Beta
+    BUILD_LIMIT = 20
+    GROUP_LIMIT = 50
+    TESTER_LIMIT = 50
+
     def self.run(argv = ARGV)
       options = {
         command: argv.shift
@@ -327,17 +331,13 @@ module ASCTooling
       when 1
         app_testers.first
       when 0
-        if require_group_membership
-          raise ArgumentError, "tester #{email.inspect} is not in beta group #{group.dig('attributes', 'name')}"
-        end
+        raise ArgumentError, "tester #{email.inspect} is not in beta group #{group.dig('attributes', 'name')}" if require_group_membership
 
         global_testers = beta_testers_by_email(email)
         resolved_global_tester = resolve_global_tester(global_testers, app_id: app_id, group: group)
         return resolved_global_tester if resolved_global_tester
 
-        if global_testers.size > 1
-          raise ArgumentError, "multiple testers found for #{email.inspect}; use --tester-id to disambiguate"
-        end
+        raise ArgumentError, "multiple testers found for #{email.inspect}; use --tester-id to disambiguate" if global_testers.size > 1
 
         return create_beta_tester!(email) if allow_create
 
@@ -368,14 +368,7 @@ module ASCTooling
     end
 
     def build_candidates(app_id, app_version)
-      params = {
-        "filter[app]" => app_id,
-        "sort" => "-uploadedDate",
-        "limit" => "20"
-      }
-      params["filter[preReleaseVersion.version]"] = app_version unless ASCTooling::Client.blank?(app_version)
-
-      @asc.request_json("GET", "/v1/builds", params: params).fetch("data", [])
+      @asc.build_candidates(app_id, app_version, limit: BUILD_LIMIT)
     end
 
     def beta_groups(app_id)
@@ -385,10 +378,10 @@ module ASCTooling
         params: {
           "filter[app]" => app_id,
           "include" => "builds,betaTesters",
-          "limit" => "50"
+          "limit" => GROUP_LIMIT.to_s
         }
       ).fetch("data", [])
-        .sort_by { |item| item.dig("attributes", "name").to_s.downcase }
+          .sort_by { |item| item.dig("attributes", "name").to_s.downcase }
     end
 
     def beta_testers_by_email(email)
@@ -397,7 +390,7 @@ module ASCTooling
         "/v1/betaTesters",
         params: {
           "filter[email]" => email,
-          "limit" => "50"
+          "limit" => TESTER_LIMIT.to_s
         }
       ).fetch("data", [])
     end
@@ -408,15 +401,15 @@ module ASCTooling
 
       group_ids = beta_groups(app_id).map { |item| item["id"] }
       prioritized = testers
-        .map { |tester| [tester, tester_group_ids(tester)] }
-        .sort_by do |tester, tester_group_ids|
-          [
-            tester_group_ids.include?(group["id"]) ? 0 : 1,
-            (tester_group_ids & group_ids).empty? ? 1 : 0,
-            tester_group_ids.empty? ? 1 : 0,
-            tester["id"]
-          ]
-        end
+                    .map { |tester| [tester, tester_group_ids(tester)] }
+                    .sort_by do |tester, tester_group_ids|
+                      [
+                        tester_group_ids.include?(group["id"]) ? 0 : 1,
+                        (tester_group_ids & group_ids).empty? ? 1 : 0,
+                        tester_group_ids.empty? ? 1 : 0,
+                        tester["id"]
+                      ]
+                    end
 
       best_tester, best_group_ids = prioritized.first
       next_tester, next_group_ids = prioritized[1]
@@ -501,8 +494,8 @@ module ASCTooling
           "include" => "betaGroups"
         }
       ).fetch("included", [])
-        .select { |item| item["type"] == "betaGroups" }
-        .map { |item| item["id"] }
+          .select { |item| item["type"] == "betaGroups" }
+          .map { |item| item["id"] }
     end
 
     def beta_group_summary(group)

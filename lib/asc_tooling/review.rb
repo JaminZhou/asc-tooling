@@ -3,10 +3,10 @@ require "optparse"
 
 module ASCTooling
   class Review
-    RELEASE_TYPE_MAP = {
-      "after-approval" => "AFTER_APPROVAL",
-      "manual" => "MANUAL"
-    }.freeze
+    BUILD_LIMIT = 20
+    SUBMISSION_LIMIT = 20
+    SUBMISSION_ITEM_LIMIT = 50
+
     RELEASEABLE_STATES = %w[
       PENDING_DEVELOPER_RELEASE
       PROCESSING_FOR_APP_STORE
@@ -32,6 +32,7 @@ module ASCTooling
         opts.on("--key-id KEY_ID", "ASC API key id") { |value| options[:key_id] = value }
         opts.on("--issuer-id ISSUER_ID", "ASC API issuer id") { |value| options[:issuer_id] = value }
         opts.on("--key-path PATH", "Path to ASC API .p8 key") { |value| options[:key_path] = value }
+        opts.on("--dry-run", "Print what would happen without making changes") { options[:dry_run] = true }
         opts.on("--json", "Print status output as JSON") { options[:json] = true }
       end
 
@@ -128,12 +129,11 @@ module ASCTooling
       app = @asc.find_app!(@options[:bundle_id])
       version = @asc.find_editable_version!(app, platform: platform, app_version: @options[:app_version])
 
+      desired_release_type = nil
       if @options[:release_type]
-        desired_release_type = RELEASE_TYPE_MAP.fetch(@options[:release_type]) do
+        desired_release_type = ASCTooling::Client::RELEASE_TYPE_MAP.fetch(@options[:release_type]) do
           raise OptionParser::InvalidArgument, "unsupported release type: #{@options[:release_type]}"
         end
-        version.update(attributes: { release_type: desired_release_type }) if version.release_type != desired_release_type
-        version = @asc.find_editable_version!(app, platform: platform, app_version: @options[:app_version])
       end
 
       submitted_submission = review_submissions(app.id).find { |submission| submission.dig("attributes", "state") == "WAITING_FOR_REVIEW" }
@@ -143,10 +143,27 @@ module ASCTooling
       end
 
       target_build = find_target_build!(app.id, version.version_string)
+
+      if @options[:dry_run]
+        parts = ["would attach build #{target_build.dig('attributes', 'version')} to version #{version.version_string}"]
+        parts << "set release type to #{@options[:release_type]}" if desired_release_type && version.release_type != desired_release_type
+        puts "Dry run: #{parts.join(', ')} and submit for review."
+        return
+      end
+
+      if desired_release_type && version.release_type != desired_release_type
+        @asc.update_resource("appStoreVersions", version.id,
+                             attributes: { releaseType: desired_release_type })
+        version = @asc.find_editable_version!(app, platform: platform, app_version: @options[:app_version])
+      end
+
       if version.build.nil? || version.build.version != target_build.dig("attributes", "version")
-        Spaceship::ConnectAPI.patch_app_store_version_with_build(
-          app_store_version_id: version.id,
-          build_id: target_build["id"]
+        @asc.request_json(
+          "PATCH",
+          "/v1/appStoreVersions/#{version.id}/relationships/build",
+          body: {
+            data: { type: "builds", id: target_build["id"] }
+          }
         )
         version = @asc.find_editable_version!(app, platform: platform, app_version: @options[:app_version])
       end
@@ -170,10 +187,19 @@ module ASCTooling
         return
       end
 
-      submission = version.app_store_version_submission || version.fetch_app_store_version_submission(client: @asc.client)
+      submission_data = @asc.request_json(
+        "GET",
+        "/v1/appStoreVersions/#{version.id}/appStoreVersionSubmission"
+      )
+      submission = submission_data.fetch("data", nil)
       raise ArgumentError, "app store version submission not found" unless submission
 
-      submission.delete!(client: @asc.client)
+      if @options[:dry_run]
+        puts "Dry run: would withdraw version #{version.version_string} from review."
+        return
+      end
+
+      @asc.delete_resource("/v1/appStoreVersionSubmissions/#{submission['id']}")
       version = @asc.find_editable_version!(app, platform: platform, app_version: @options[:app_version])
 
       puts "Withdrew #{version.version_string}; version state is now #{version.app_store_state}"
@@ -185,6 +211,11 @@ module ASCTooling
 
       case version.app_store_state
       when "PENDING_DEVELOPER_RELEASE"
+        if @options[:dry_run]
+          puts "Dry run: would create release request for version #{version.version_string}."
+          return
+        end
+
         release_request = create_release_request(version.id)
         version = @asc.find_version!(app, platform: platform, app_version: version.version_string)
         puts "Release request #{release_request['id']} created for #{version.version_string}"
@@ -218,16 +249,7 @@ module ASCTooling
     end
 
     def build_candidates(app_id, app_version)
-      @asc.request_json(
-        "GET",
-        "/v1/builds",
-        params: {
-          "filter[app]" => app_id,
-          "filter[preReleaseVersion.version]" => app_version,
-          "sort" => "-uploadedDate",
-          "limit" => "20"
-        }
-      ).fetch("data", [])
+      @asc.build_candidates(app_id, app_version, limit: BUILD_LIMIT)
     end
 
     def review_submissions(app_id)
@@ -237,7 +259,7 @@ module ASCTooling
         params: {
           "filter[app]" => app_id,
           "filter[platform]" => platform,
-          "limit" => "20"
+          "limit" => SUBMISSION_LIMIT.to_s
         }
       ).fetch("data", [])
     end
@@ -266,7 +288,7 @@ module ASCTooling
         "/v1/reviewSubmissions/#{submission_id}/items",
         params: {
           "include" => "appStoreVersion",
-          "limit" => "50"
+          "limit" => SUBMISSION_ITEM_LIMIT.to_s
         }
       ).fetch("included", []).any? do |included|
         included["type"] == "appStoreVersions" && included["id"] == version_id

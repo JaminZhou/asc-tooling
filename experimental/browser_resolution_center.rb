@@ -1,16 +1,17 @@
 #!/usr/bin/env ruby
 
 require "json"
+require "net/http"
 require "optparse"
 require "open3"
 require "time"
-require "http/cookie_jar"
-require "http/cookie"
-require "spaceship"
+require "uri"
 require_relative "../lib/asc_tooling"
 
 module Experimental
   class BrowserResolutionCenter
+    TUNES_BASE_URL = "https://appstoreconnect.apple.com/iris/v1".freeze
+
     def initialize(argv)
       @argv = argv
       @options = {
@@ -22,33 +23,20 @@ module Experimental
     def run
       parse_options!
       cookie_payload = JSON.parse(File.read(@options[:cookie_json]))
-      provider_id = cookie_payload.fetch("provider_id")
-      jar = build_cookie_jar(cookie_payload.fetch("cookies"))
+      @provider_id = cookie_payload.fetch("provider_id")
+      @cookie_header = build_cookie_header(cookie_payload.fetch("cookies"), URI(TUNES_BASE_URL))
 
       submission_id = @options[:submission_id] || find_submission_id_from_bundle!
 
-      client = Spaceship::ConnectAPI::Tunes::Client.new(
-        cookie: jar,
-        current_team_id: provider_id
-      )
-
-      thread_response = client.get_resolution_center_threads(
-        filter: { reviewSubmission: submission_id },
-        includes: "reviewSubmission"
-      )
-      threads = thread_response.to_models
+      threads = get_resolution_center_threads(submission_id)
       raise ArgumentError, "no resolution center thread found for submission #{submission_id}" if threads.empty?
 
       thread = threads.first
-      message_response = client.get_resolution_center_messages(
-        thread_id: thread.id,
-        includes: "rejections,fromActor"
-      )
-      messages = message_response.to_models
-      raise ArgumentError, "no resolution center messages found for thread #{thread.id}" if messages.empty?
+      messages, included = get_resolution_center_messages(thread["id"])
+      raise ArgumentError, "no resolution center messages found for thread #{thread['id']}" if messages.empty?
 
-      latest = messages.max_by { |message| message.created_date || Time.at(0) }
-      payload = format_output(submission_id, thread, latest)
+      latest = messages.max_by { |m| m.dig("attributes", "createdDate") || "0000" }
+      payload = format_output(submission_id, thread, latest, included)
 
       if @options[:json]
         puts JSON.pretty_generate(payload)
@@ -81,20 +69,80 @@ module Experimental
       raise OptionParser::MissingArgument, "pass --submission-id or --bundle-id" unless @options[:submission_id] || @options[:bundle_id]
     end
 
-    def build_cookie_jar(cookie_data)
-      jar = HTTP::CookieJar.new
-      cookie_data.each do |row|
-        cookie = HTTP::Cookie.new(
-          row.fetch("name"),
-          row.fetch("value"),
-          domain: row.fetch("domain"),
-          path: row.fetch("path"),
-          secure: row.fetch("secure"),
-          expires: row["expires"] ? Time.at(row["expires"]) : nil
-        )
-        jar.add(cookie)
+    def build_cookie_header(cookie_data, target_uri)
+      host = target_uri.host.downcase
+      path = target_uri.path.empty? ? "/" : target_uri.path
+      now = Time.now
+
+      cookie_data.select { |c| cookie_applicable?(c, host, path, now) }
+                 .sort_by { |c| -c.fetch("path", "/").length }
+                 .map { |c| "#{c.fetch('name')}=#{c.fetch('value')}" }
+                 .join("; ")
+    end
+
+    def cookie_applicable?(cookie, host, path, now)
+      return false unless domain_matches?(cookie.fetch("domain"), host)
+      return false unless path_matches?(cookie.fetch("path", "/"), path)
+      # secure cookies are fine — all Apple endpoints are HTTPS
+      return false if cookie["expires"] && Time.at(cookie["expires"]) < now
+
+      true
+    end
+
+    def path_matches?(cookie_path, request_path)
+      return true if cookie_path == request_path
+      return true if request_path.start_with?(cookie_path) &&
+                     (cookie_path.end_with?("/") || request_path[cookie_path.length] == "/")
+
+      false
+    end
+
+    def domain_matches?(cookie_domain, host)
+      cookie_domain = cookie_domain.downcase
+      if cookie_domain.start_with?(".")
+        suffix = cookie_domain[1..]
+        host == suffix || host.end_with?(".#{suffix}")
+      else
+        host == cookie_domain.downcase
       end
-      jar
+    end
+
+    def tunes_request(path, params = {})
+      uri = URI("#{TUNES_BASE_URL}/#{path}")
+      uri.query = URI.encode_www_form(params) unless params.empty?
+
+      request = Net::HTTP::Get.new(uri)
+      request["Accept"] = "application/json"
+      request["Content-Type"] = "application/json"
+      request["Cookie"] = @cookie_header
+      request["X-Apple-Widget-Key"] = ""
+      request["X-Requested-With"] = "XMLHttpRequest"
+      request["X-Apple-Provider-Id"] = @provider_id if @provider_id
+
+      http = Net::HTTP.new(uri.host, uri.port)
+      http.use_ssl = true
+      http.open_timeout = 30
+      http.read_timeout = 60
+
+      response = http.request(request)
+      raise "Tunes API request failed (#{response.code}): #{response.body}" unless response.is_a?(Net::HTTPSuccess)
+
+      JSON.parse(response.body)
+    end
+
+    def get_resolution_center_threads(submission_id)
+      data = tunes_request("reviewCenterThreads", {
+                             "filter[reviewSubmission]" => submission_id,
+                             "include" => "reviewSubmission"
+                           })
+      data.fetch("data", [])
+    end
+
+    def get_resolution_center_messages(thread_id)
+      response = tunes_request("reviewCenterThreads/#{thread_id}/reviewCenterMessages", {
+                                 "include" => "rejections,fromActor"
+                               })
+      [response.fetch("data", []), response.fetch("included", [])]
     end
 
     def find_submission_id_from_bundle!
@@ -127,22 +175,23 @@ module Experimental
     def auth_command_args
       auth_options = ASCTooling::Client.auth_options_from(@options)
       args = []
-      args.concat(["--key-id", auth_options[:key_id]]) unless ASCTooling::Client.blank?(auth_options[:key_id])
-      args.concat(["--issuer-id", auth_options[:issuer_id]]) unless ASCTooling::Client.blank?(auth_options[:issuer_id])
-      args.concat(["--key-path", auth_options[:key_path]]) unless ASCTooling::Client.blank?(auth_options[:key_path])
+      args.push("--key-id", auth_options[:key_id]) unless ASCTooling::Client.blank?(auth_options[:key_id])
+      args.push("--issuer-id", auth_options[:issuer_id]) unless ASCTooling::Client.blank?(auth_options[:issuer_id])
+      args.push("--key-path", auth_options[:key_path]) unless ASCTooling::Client.blank?(auth_options[:key_path])
       args
     end
 
-    def format_output(submission_id, thread, message)
-      rejection = extract_rejection(Array(message.rejections).first)
+    def format_output(submission_id, thread, message, included)
+      attrs = message.fetch("attributes", {})
+      rejection = extract_rejection(message, included)
       {
         submission_id: submission_id,
-        thread_id: thread.id,
-        thread_type: thread.thread_type,
-        message_id: message.id,
-        created_date: normalize_time(message.created_date),
-        from_actor_type: actor_type(message.from_actor),
-        body: message_body(message),
+        thread_id: thread["id"],
+        thread_type: thread.dig("attributes", "threadType"),
+        message_id: message["id"],
+        created_date: attrs["createdDate"],
+        from_actor_type: attrs["fromActorType"],
+        body: attrs["messageBody"] || attrs["body"],
         rejection: rejection
       }
     end
@@ -152,44 +201,25 @@ module Experimental
       puts "Thread: #{payload[:thread_id]} (#{payload[:thread_type]})"
       puts "Message: #{payload[:message_id]}"
       puts "Created: #{payload[:created_date]}" if payload[:created_date]
-      if payload[:rejection]
-        puts "Reason: #{payload[:rejection][:reason_code]} - #{payload[:rejection][:reason_description]}"
-      end
+      puts "Reason: #{payload[:rejection][:reason_code]} - #{payload[:rejection][:reason_description]}" if payload[:rejection]
       puts
       puts payload[:body].to_s.strip
     end
 
-    def normalize_time(value)
-      return nil if value.nil?
-      return value.iso8601 if value.respond_to?(:iso8601)
+    def extract_rejection(message, included)
+      refs = message.dig("relationships", "rejections", "data")
+      return nil if refs.nil? || refs.empty?
 
-      value.to_s
-    end
+      ref = refs.first
+      rejection = included.find { |r| r["type"] == ref["type"] && r["id"] == ref["id"] }
+      return { id: ref["id"], reason_code: nil, reason_description: nil } unless rejection
 
-    def actor_type(value)
-      return nil if value.nil?
-      return value.actor_type if value.respond_to?(:actor_type)
-      return value.type if value.respond_to?(:type)
-
-      value.to_s
-    end
-
-    def message_body(message)
-      return message.message_body if message.respond_to?(:message_body)
-      return message.body if message.respond_to?(:body)
-
-      message.to_s
-    end
-
-    def extract_rejection(rejection)
-      return nil if rejection.nil?
-
-      reasons = rejection.respond_to?(:reasons) ? Array(rejection.reasons) : []
+      reasons = rejection.dig("attributes", "reasons") || []
       reason = reasons.first || {}
       {
-        id: rejection.respond_to?(:id) ? rejection.id : nil,
-        reason_code: reason["reasonCode"] || reason[:reasonCode],
-        reason_description: reason["reasonDescription"] || reason[:reasonDescription]
+        id: rejection["id"],
+        reason_code: reason["reasonCode"],
+        reason_description: reason["reasonDescription"]
       }
     end
   end
