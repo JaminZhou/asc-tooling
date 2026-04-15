@@ -76,18 +76,25 @@ module Experimental
 
       cookie_data.select { |c| cookie_applicable?(c, host, path, now) }
                  .sort_by { |c| -c.fetch("path", "/").length }
-                 .uniq { |c| c.fetch("name") }
                  .map { |c| "#{c.fetch('name')}=#{c.fetch('value')}" }
                  .join("; ")
     end
 
     def cookie_applicable?(cookie, host, path, now)
       return false unless domain_matches?(cookie.fetch("domain"), host)
-      return false unless path.start_with?(cookie.fetch("path", "/"))
+      return false unless path_matches?(cookie.fetch("path", "/"), path)
       # secure cookies are fine — all Apple endpoints are HTTPS
       return false if cookie["expires"] && Time.at(cookie["expires"]) < now
 
       true
+    end
+
+    def path_matches?(cookie_path, request_path)
+      return true if cookie_path == request_path
+      return true if request_path.start_with?(cookie_path) &&
+                     (cookie_path.end_with?("/") || request_path[cookie_path.length] == "/")
+
+      false
     end
 
     def domain_matches?(cookie_domain, host)
