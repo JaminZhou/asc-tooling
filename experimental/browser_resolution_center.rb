@@ -75,6 +75,7 @@ module Experimental
       now = Time.now
 
       cookie_data.select { |c| cookie_applicable?(c, host, path, now) }
+                 .sort_by { |c| -c.fetch("path", "/").length }
                  .uniq { |c| c.fetch("name") }
                  .map { |c| "#{c.fetch('name')}=#{c.fetch('value')}" }
                  .join("; ")

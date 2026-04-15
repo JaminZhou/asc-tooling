@@ -154,11 +154,7 @@ module ASCTooling
       find_version_localization(version, locale) || create_version_localization(version, locale)
     end
 
-    EDITABLE_APP_INFO_STATES = %w[
-      PREPARE_FOR_SUBMISSION WAITING_FOR_REVIEW IN_REVIEW
-      DEVELOPER_REJECTED DEVELOPER_REMOVED_FROM_SALE
-      PENDING_DEVELOPER_RELEASE
-    ].freeze
+    LIVE_APP_INFO_STATES = %w[READY_FOR_SALE REMOVED_FROM_SALE].freeze
 
     def fetch_edit_app_info!(app)
       data = request_json(
@@ -167,7 +163,7 @@ module ASCTooling
         params: { "limit" => DEFAULT_PAGE_LIMIT.to_s }
       )
       records = data.fetch("data", [])
-      app_info = records.find { |r| EDITABLE_APP_INFO_STATES.include?(r.dig("attributes", "appStoreState")) }
+      app_info = records.find { |r| !LIVE_APP_INFO_STATES.include?(r.dig("attributes", "appStoreState")) }
       app_info ||= records.first
       raise ArgumentError, "editable app info not found" unless app_info
 
