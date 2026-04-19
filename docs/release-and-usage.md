@@ -145,7 +145,7 @@ Before each release, rescan `~/Developer` instead of maintaining a static
 consumer list:
 
 ```bash
-rg -l --glob 'Gemfile' 'gem "asc_tooling"' ~/Developer | xargs -n1 dirname
+rg -l --glob 'Gemfile' "gem ['\"]asc_tooling['\"]" ~/Developer | xargs -n1 dirname
 ```
 
 This keeps the rollout checklist current when new product repositories are
