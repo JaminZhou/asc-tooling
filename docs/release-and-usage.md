@@ -120,21 +120,74 @@ generation is still out of scope for now.
 ## Release Flow
 
 1. Update the gem version in `lib/asc_tooling/version.rb`.
-2. Commit and push the version bump to `main`.
-3. Create and push a tag:
+2. Create a release branch, open a PR, and merge it to `main` after tests pass.
+3. Create and push a tag from the updated `main` branch:
 
 ```bash
 git tag v0.5.1
 git push origin v0.5.1
 ```
 
-4. In each consuming product repository:
+4. Create a GitHub release for the tag:
 
 ```bash
-bundle update asc_tooling
-git add Gemfile.lock
-git commit -m "Update asc_tooling to v0.5.1"
+gh release create v0.5.1 --generate-notes
 ```
+
+## Post-Release SOP
+
+After the tag and GitHub release are live, update each local product
+repository that consumes `asc_tooling`.
+
+### Find Local Consumers
+
+Before each release, rescan `~/Developer` instead of maintaining a static
+consumer list:
+
+```bash
+rg -l --glob 'Gemfile' "gem ['\"]asc_tooling['\"]" ~/Developer | xargs -n1 dirname
+```
+
+This keeps the rollout checklist current when new product repositories are
+added later.
+
+### Update Each Consumer Repository
+
+For each repository returned by the scan:
+
+1. Sync `main` and create a release follow-up branch such as
+   `chore/bump-asc-tooling-v0-5-1`.
+2. Update the `tag:` in `Gemfile` to the newly released version.
+3. Run `bundle update asc_tooling` to refresh `Gemfile.lock`.
+4. Run the repository's normal validation commands.
+5. Commit, push, and open a PR.
+
+Example workflow after choosing one repository from the scan result:
+
+```bash
+cd <consumer-repo>
+git switch main
+git pull --ff-only origin main
+git switch -c chore/bump-asc-tooling-v0-5-1
+
+# Update Gemfile tag from the previous version to v0.5.1.
+bundle update asc_tooling
+
+# Run the repo-specific verification here.
+
+git add Gemfile Gemfile.lock
+git commit -m "chore: update asc_tooling to v0.5.1"
+git push -u origin HEAD
+gh pr create --fill
+```
+
+### Verification Checklist
+
+Before considering the release fully rolled out, confirm that:
+
+- every local consumer repository has a PR for the new `asc_tooling` tag
+- every updated `Gemfile.lock` resolves to the expected `asc_tooling` version
+- any lagging consumer is explicitly noted for follow-up
 
 ## Scope
 
