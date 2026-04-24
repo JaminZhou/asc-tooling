@@ -14,6 +14,7 @@ screenshots, beta distribution, in-app purchases, and sales reports.
 - screenshot inspection and upload
 - TestFlight group and tester management
 - in-app purchase readiness helpers
+- app territory availability checks
 - Sales and Trends report download plus unit summaries
 
 ## Commands
@@ -24,6 +25,7 @@ screenshots, beta distribution, in-app purchases, and sales reports.
 - `asc-sales`
 - `asc-screenshots`
 - `asc-iap`
+- `asc-availability`
 
 Current implementation status:
 
@@ -33,6 +35,7 @@ Current implementation status:
 - `asc-sales`: implemented
 - `asc-screenshots`: implemented
 - `asc-iap`: implemented
+- `asc-availability`: implemented
 
 Product-specific assets such as screenshot renderers should stay in each app
 repository.
@@ -86,6 +89,7 @@ Example local usage from a checkout:
 ./exe/asc-sales units --bundle-id com.example.app --vendor-number 12345678 --report-date 2026-04-10
 ./exe/asc-screenshots status --bundle-id com.example.app --locale en-US --display-type APP_DESKTOP
 ./exe/asc-iap status --bundle-id com.example.app
+./exe/asc-availability status --bundle-id com.example.app
 ```
 
 `asc-sales` wraps the App Store Connect Sales and Trends report download endpoint.
@@ -98,6 +102,9 @@ sync, and submission attempts. If Apple returns
 `FIRST_IAP_MUST_BE_SUBMITTED_ON_VERSION`, the app's first IAP still needs to be
 attached to the app version in the App Store Connect web UI before that version
 is submitted.
+
+`asc-availability` checks whether the app is available in every current App
+Store Connect territory and reports any missing territory IDs.
 
 For a fuller usage guide and the release flow, see
 [docs/release-and-usage.md](docs/release-and-usage.md).
@@ -112,6 +119,7 @@ The formal, supported workflow in this repository is the JWT-based command set:
 - `asc-sales`
 - `asc-screenshots`
 - `asc-iap`
+- `asc-availability`
 
 These commands are the part of `asc_tooling` intended for repeatable local
 workflows and CI-friendly automation.
