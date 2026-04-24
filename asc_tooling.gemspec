@@ -26,6 +26,7 @@ Gem::Specification.new do |spec|
     asc-screenshots
     asc-iap
     asc-version
+    asc-availability
   ]
   spec.require_paths = ["lib"]
 
