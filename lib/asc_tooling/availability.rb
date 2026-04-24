@@ -84,7 +84,8 @@ module ASCTooling
       availability = @asc.request_json("GET", "/v1/apps/#{app.id}/appAvailabilityV2").fetch("data")
       territories = territory_ids
       available_territories = available_territory_ids(availability.fetch("id"))
-      missing_territories = territories - available_territories
+      current_available_territories = territories & available_territories
+      missing_territories = territories - current_available_territories
       unknown_available_territories = available_territories - territories
       available_in_new_territories = availability.dig("attributes", "availableInNewTerritories")
 
@@ -98,7 +99,7 @@ module ASCTooling
           id: availability.fetch("id"),
           available_in_new_territories: available_in_new_territories,
           all_territory_count: territories.size,
-          available_territory_count: available_territories.size,
+          available_territory_count: current_available_territories.size,
           missing_territory_count: missing_territories.size,
           missing_territory_ids: missing_territories,
           unknown_available_territory_ids: unknown_available_territories

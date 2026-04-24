@@ -89,6 +89,20 @@ class ASCToolingAvailabilityTest < Minitest::Test
     assert_equal ["CAN"], summary.dig(:availability, :missing_territory_ids)
   end
 
+  def test_status_summary_excludes_unknown_territories_from_available_count
+    app = OpenStruct.new(id: "app-1", name: "Test", bundle_id: "com.test")
+    client = FakeClient.new(app: app, territory_ids: %w[JPN USA], available_territory_ids: %w[JPN USA XYZ])
+    availability = build_availability(client)
+
+    summary = availability.send(:status_summary)
+
+    assert_equal true, summary[:ok]
+    assert_equal 2, summary.dig(:availability, :all_territory_count)
+    assert_equal 2, summary.dig(:availability, :available_territory_count)
+    assert_empty summary.dig(:availability, :missing_territory_ids)
+    assert_equal ["XYZ"], summary.dig(:availability, :unknown_available_territory_ids)
+  end
+
   def test_print_status_json_outputs_summary
     app = OpenStruct.new(id: "app-1", name: "Test", bundle_id: "com.test")
     client = FakeClient.new(app: app, territory_ids: %w[JPN USA], available_territory_ids: %w[JPN USA])
