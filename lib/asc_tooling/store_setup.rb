@@ -351,11 +351,9 @@ module ASCTooling
       attrs[:contactPhone] = @options[:review_contact_phone] if @options[:review_contact_phone]
       attrs[:contactEmail] = @options[:review_contact_email] if @options[:review_contact_email]
       attrs[:notes] = review_notes if review_notes
-      if @options.key?(:demo_account_required)
-        attrs[:demoAccountRequired] = @options[:demo_account_required]
-        attrs[:demoAccountName] = @options[:demo_account_name] if @options[:demo_account_name]
-        attrs[:demoAccountPassword] = @options[:demo_account_password] if @options[:demo_account_password]
-      end
+      attrs[:demoAccountName] = @options[:demo_account_name] if @options[:demo_account_name]
+      attrs[:demoAccountPassword] = @options[:demo_account_password] if @options[:demo_account_password]
+      attrs[:demoAccountRequired] = @options[:demo_account_required] if @options.key?(:demo_account_required)
       if @options[:clear_demo_account]
         attrs[:demoAccountName] = nil
         attrs[:demoAccountPassword] = nil

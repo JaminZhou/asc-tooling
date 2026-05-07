@@ -255,6 +255,33 @@ class ASCToolingStoreSetupTest < Minitest::Test
     assert_includes stdout, "Updated App Review detail"
   end
 
+  def test_apply_updates_existing_demo_credentials_without_required_flag
+    review_detail = {
+      "id" => "review-1",
+      "type" => "appStoreReviewDetails",
+      "attributes" => {
+        "demoAccountName" => "old@example.com",
+        "demoAccountPassword" => "old-secret",
+        "demoAccountRequired" => true
+      }
+    }
+    client = FakeClient.new(review_detail: review_detail)
+    setup = build_store_setup(
+      client,
+      demo_account_name: "new@example.com",
+      demo_account_password: "new-secret"
+    )
+
+    stdout, = capture_io { setup.send(:apply) }
+
+    request = client.requests.find { |item| item[:method] == "PATCH" && item[:path] == "/v1/appStoreReviewDetails/review-1" }
+    attrs = request.dig(:body, :data, :attributes)
+    assert_equal "new@example.com", attrs[:demoAccountName]
+    assert_equal "new-secret", attrs[:demoAccountPassword]
+    refute attrs.key?(:demoAccountRequired)
+    assert_includes stdout, "Updated App Review detail"
+  end
+
   def test_status_summary_reports_template_match_and_free_price_point
     client = FakeClient.new(
       primary_category: "SHOPPING",
