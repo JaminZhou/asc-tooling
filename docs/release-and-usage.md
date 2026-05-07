@@ -36,6 +36,40 @@ bundle exec asc-metadata apply \
   --subtitle "Calm wake control for Mac"
 ```
 
+### Store Setup
+
+```bash
+bundle exec asc-store-setup status \
+  --bundle-id com.example.app \
+  --app-version 1.0.0 \
+  --platform ios \
+  --primary-category SHOPPING \
+  --age-rating-template 4-plus
+
+bundle exec asc-store-setup apply \
+  --bundle-id com.example.app \
+  --app-version 1.0.0 \
+  --platform ios \
+  --release-type manual \
+  --primary-category SHOPPING \
+  --age-rating-template 4-plus \
+  --review-contact-first-name Jamin \
+  --review-contact-last-name Zhou \
+  --review-contact-phone "+1 555 0100" \
+  --review-contact-email me@example.com \
+  --review-notes-file docs/asc-review-notes-v1.0.0.txt \
+  --no-demo-account \
+  --dry-run
+```
+
+`asc-store-setup apply` only changes the fields represented by the options you
+pass. Review details require complete App Review contact information before the
+tool creates them. Creating a new review detail also requires an explicit demo
+account state: pass `--no-demo-account`, or pass `--demo-account-required` with
+`--demo-account-name` and `--demo-account-password` when reviewers need a login.
+Pricing/Availability and App Privacy should still be confirmed in App Store
+Connect for first-version submissions.
+
 ### Screenshots
 
 ```bash
