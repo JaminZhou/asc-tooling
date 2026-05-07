@@ -172,6 +172,48 @@ class ASCToolingStoreSetupTest < Minitest::Test
     assert_includes stdout, "Created App Review detail"
   end
 
+  def test_apply_skips_new_review_detail_without_explicit_demo_account_state
+    client = FakeClient.new
+    setup = build_store_setup(
+      client,
+      review_contact_first_name: "Jamin",
+      review_contact_last_name: "Zhou",
+      review_contact_phone: "+1 555 0100",
+      review_contact_email: "me@example.com",
+      review_notes: "No login."
+    )
+
+    stdout, = capture_io { setup.send(:apply) }
+
+    assert_includes stdout, "pass --no-demo-account or --demo-account-required"
+    refute(
+      client.requests.any? { |request| request[:method] == "POST" && request[:path] == "/v1/appStoreReviewDetails" }
+    )
+  end
+
+  def test_apply_creates_review_detail_with_required_demo_account
+    client = FakeClient.new
+    setup = build_store_setup(
+      client,
+      review_contact_first_name: "Jamin",
+      review_contact_last_name: "Zhou",
+      review_contact_phone: "+1 555 0100",
+      review_contact_email: "me@example.com",
+      review_notes: "Use the demo login.",
+      demo_account_required: true,
+      demo_account_name: "reviewer@example.com",
+      demo_account_password: "secret"
+    )
+
+    capture_io { setup.send(:apply) }
+
+    request = client.requests.find { |item| item[:method] == "POST" && item[:path] == "/v1/appStoreReviewDetails" }
+    attrs = request.dig(:body, :data, :attributes)
+    assert_equal true, attrs[:demoAccountRequired]
+    assert_equal "reviewer@example.com", attrs[:demoAccountName]
+    assert_equal "secret", attrs[:demoAccountPassword]
+  end
+
   def test_status_summary_reports_template_match_and_free_price_point
     client = FakeClient.new(
       primary_category: "SHOPPING",

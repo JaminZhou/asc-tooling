@@ -71,6 +71,9 @@ module ASCTooling
         opts.on("--review-contact-email EMAIL", "App Review contact email") { |value| options[:review_contact_email] = value }
         opts.on("--review-notes TEXT", "App Review notes") { |value| options[:review_notes] = value }
         opts.on("--review-notes-file PATH", "Text file for App Review notes") { |value| options[:review_notes_file] = value }
+        opts.on("--demo-account-required", "Mark review detail as requiring a demo account") { options[:demo_account_required] = true }
+        opts.on("--demo-account-name NAME", "Demo account username for App Review") { |value| options[:demo_account_name] = value }
+        opts.on("--demo-account-password PASSWORD", "Demo account password for App Review") { |value| options[:demo_account_password] = value }
         opts.on("--no-demo-account", "Mark review detail as not requiring a demo account") { options[:clear_demo_account] = true }
         opts.on("--key-id KEY_ID", "ASC API key id") { |value| options[:key_id] = value }
         opts.on("--issuer-id ISSUER_ID", "ASC API issuer id") { |value| options[:issuer_id] = value }
@@ -246,6 +249,9 @@ module ASCTooling
       detail = review_detail
       missing = required_review_contact_fields(attrs)
       return "Skipped review detail: set #{missing.join(', ')} before creating it." if detail.nil? && missing.any?
+      if detail.nil? && !demo_account_state_explicit?
+        return "Skipped review detail: pass --no-demo-account or --demo-account-required before creating it."
+      end
 
       if detail
         current = detail.fetch("attributes", {})
@@ -342,6 +348,11 @@ module ASCTooling
       attrs[:contactPhone] = @options[:review_contact_phone] if @options[:review_contact_phone]
       attrs[:contactEmail] = @options[:review_contact_email] if @options[:review_contact_email]
       attrs[:notes] = review_notes if review_notes
+      if @options.key?(:demo_account_required)
+        attrs[:demoAccountRequired] = @options[:demo_account_required]
+        attrs[:demoAccountName] = @options[:demo_account_name] if @options[:demo_account_name]
+        attrs[:demoAccountPassword] = @options[:demo_account_password] if @options[:demo_account_password]
+      end
       if @options[:clear_demo_account]
         attrs[:demoAccountName] = nil
         attrs[:demoAccountPassword] = nil
@@ -357,6 +368,10 @@ module ASCTooling
         "ASC_REVIEW_CONTACT_PHONE or --review-contact-phone" => attrs[:contactPhone],
         "ASC_REVIEW_CONTACT_EMAIL or --review-contact-email" => attrs[:contactEmail]
       }.reject { |_, value| present?(value) }.keys
+    end
+
+    def demo_account_state_explicit?
+      @options[:clear_demo_account] || @options.key?(:demo_account_required)
     end
 
     def review_notes

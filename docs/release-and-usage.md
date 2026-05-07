@@ -64,8 +64,11 @@ bundle exec asc-store-setup apply \
 
 `asc-store-setup apply` only changes the fields represented by the options you
 pass. Review details require complete App Review contact information before the
-tool creates them. Pricing/Availability and App Privacy should still be
-confirmed in App Store Connect for first-version submissions.
+tool creates them. Creating a new review detail also requires an explicit demo
+account state: pass `--no-demo-account`, or pass `--demo-account-required` with
+`--demo-account-name` and `--demo-account-password` when reviewers need a login.
+Pricing/Availability and App Privacy should still be confirmed in App Store
+Connect for first-version submissions.
 
 ### Screenshots
 
