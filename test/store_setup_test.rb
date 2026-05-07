@@ -214,6 +214,47 @@ class ASCToolingStoreSetupTest < Minitest::Test
     assert_equal "secret", attrs[:demoAccountPassword]
   end
 
+  def test_apply_skips_required_demo_account_without_credentials
+    client = FakeClient.new
+    setup = build_store_setup(
+      client,
+      review_contact_first_name: "Jamin",
+      review_contact_last_name: "Zhou",
+      review_contact_phone: "+1 555 0100",
+      review_contact_email: "me@example.com",
+      review_notes: "Use the demo login.",
+      demo_account_required: true,
+      demo_account_name: "reviewer@example.com"
+    )
+
+    stdout, = capture_io { setup.send(:apply) }
+
+    assert_includes stdout, "set --demo-account-password when using --demo-account-required"
+    refute(
+      client.requests.any? { |request| request[:method] == "POST" && request[:path] == "/v1/appStoreReviewDetails" }
+    )
+  end
+
+  def test_apply_uses_existing_demo_credentials_when_marking_existing_detail_required
+    review_detail = {
+      "id" => "review-1",
+      "type" => "appStoreReviewDetails",
+      "attributes" => {
+        "demoAccountName" => "reviewer@example.com",
+        "demoAccountPassword" => "secret",
+        "demoAccountRequired" => false
+      }
+    }
+    client = FakeClient.new(review_detail: review_detail)
+    setup = build_store_setup(client, demo_account_required: true)
+
+    stdout, = capture_io { setup.send(:apply) }
+
+    request = client.requests.find { |item| item[:method] == "PATCH" && item[:path] == "/v1/appStoreReviewDetails/review-1" }
+    assert_equal true, request.dig(:body, :data, :attributes, :demoAccountRequired)
+    assert_includes stdout, "Updated App Review detail"
+  end
+
   def test_status_summary_reports_template_match_and_free_price_point
     client = FakeClient.new(
       primary_category: "SHOPPING",

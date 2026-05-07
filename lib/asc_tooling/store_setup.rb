@@ -253,9 +253,12 @@ module ASCTooling
         return "Skipped review detail: pass --no-demo-account or --demo-account-required before creating it."
       end
 
+      current_attrs = detail&.fetch("attributes", {}) || {}
+      missing_demo = required_demo_account_fields(attrs, current_attrs)
+      return "Skipped review detail: set #{missing_demo.join(', ')} when using --demo-account-required." if missing_demo.any?
+
       if detail
-        current = detail.fetch("attributes", {})
-        unchanged = attrs.all? { |key, value| current[key.to_s] == value }
+        unchanged = attrs.all? { |key, value| current_attrs[key.to_s] == value }
         return "No change: App Review detail already matches desired fields." if unchanged
         return "Dry run: would update App Review detail #{detail.fetch('id')}." if @options[:dry_run]
 
@@ -367,6 +370,15 @@ module ASCTooling
         "ASC_REVIEW_CONTACT_LAST_NAME or --review-contact-last-name" => attrs[:contactLastName],
         "ASC_REVIEW_CONTACT_PHONE or --review-contact-phone" => attrs[:contactPhone],
         "ASC_REVIEW_CONTACT_EMAIL or --review-contact-email" => attrs[:contactEmail]
+      }.reject { |_, value| present?(value) }.keys
+    end
+
+    def required_demo_account_fields(attrs, current_attrs)
+      return [] unless attrs[:demoAccountRequired] == true
+
+      {
+        "--demo-account-name" => attrs[:demoAccountName] || current_attrs["demoAccountName"],
+        "--demo-account-password" => attrs[:demoAccountPassword] || current_attrs["demoAccountPassword"]
       }.reject { |_, value| present?(value) }.keys
     end
 
