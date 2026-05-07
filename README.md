@@ -5,12 +5,15 @@ Reusable App Store Connect automation tooling extracted from product repositorie
 `asc_tooling` packages the repeatable parts of an App Store Connect release
 workflow into small JWT-based CLI commands. It is intended for local automation
 and product repositories that need a stable way to manage review, metadata,
-screenshots, beta distribution, in-app purchases, and sales reports.
+store setup, screenshots, beta distribution, in-app purchases, and sales
+reports.
 
 ## What It Covers
 
 - app review submission and release actions
 - metadata inspection and updates
+- store setup checks and updates for categories, age ratings, release type, and
+  App Review details
 - screenshot inspection and upload
 - TestFlight group and tester management
 - in-app purchase readiness helpers
@@ -26,6 +29,7 @@ screenshots, beta distribution, in-app purchases, and sales reports.
 - `asc-screenshots`
 - `asc-iap`
 - `asc-availability`
+- `asc-store-setup`
 
 Current implementation status:
 
@@ -36,6 +40,7 @@ Current implementation status:
 - `asc-screenshots`: implemented
 - `asc-iap`: implemented
 - `asc-availability`: implemented
+- `asc-store-setup`: implemented
 
 Product-specific assets such as screenshot renderers should stay in each app
 repository.
@@ -90,6 +95,7 @@ Example local usage from a checkout:
 ./exe/asc-screenshots status --bundle-id com.example.app --locale en-US --display-type APP_DESKTOP
 ./exe/asc-iap status --bundle-id com.example.app
 ./exe/asc-availability status --bundle-id com.example.app
+./exe/asc-store-setup status --bundle-id com.example.app --app-version 1.0.0 --platform ios
 ```
 
 `asc-sales` wraps the App Store Connect Sales and Trends report download endpoint.
@@ -106,6 +112,11 @@ is submitted.
 `asc-availability` checks whether the app is available in every current App
 Store Connect territory and reports any missing territory IDs.
 
+`asc-store-setup` checks and optionally applies repeatable App Store Connect
+store setup fields such as release type, categories, age rating templates, and
+App Review details. Pricing/Availability and App Privacy remain status or web
+confirmation items.
+
 For a fuller usage guide and the release flow, see
 [docs/release-and-usage.md](docs/release-and-usage.md).
 
@@ -120,6 +131,7 @@ The formal, supported workflow in this repository is the JWT-based command set:
 - `asc-screenshots`
 - `asc-iap`
 - `asc-availability`
+- `asc-store-setup`
 
 These commands are the part of `asc_tooling` intended for repeatable local
 workflows and CI-friendly automation.
