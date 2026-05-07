@@ -19,12 +19,18 @@ export ASC_VENDOR_NUMBER=YOUR_VENDOR_NUMBER
 bundle exec asc-review status --bundle-id com.example.app --json
 bundle exec asc-review submit --bundle-id com.example.app --release-type manual
 bundle exec asc-review release --bundle-id com.example.app --app-version 1.2.0
-bundle exec asc-review withdraw --bundle-id com.example.app
+bundle exec asc-review withdraw --bundle-id com.example.app --app-version 1.2.0
 ```
 
 `asc-review release` sends the manual release request for a version in
 `PENDING_DEVELOPER_RELEASE`. If the version is already processing or live, it
 no-ops with a status message.
+
+`asc-review withdraw` removes a version from App Review by deleting the
+`appStoreVersionSubmission`. It supports submitted states such as
+`WAITING_FOR_REVIEW`, `IN_REVIEW`, and pending manual release states; after the
+withdrawal App Store Connect normally reports the version as
+`DEVELOPER_REJECTED`.
 
 ### Metadata
 

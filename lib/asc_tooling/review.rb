@@ -14,6 +14,13 @@ module ASCTooling
       READY_FOR_DISTRIBUTION
       READY_FOR_SALE
     ].freeze
+    WITHDRAWABLE_STATES = %w[
+      WAITING_FOR_EXPORT_COMPLIANCE
+      WAITING_FOR_REVIEW
+      IN_REVIEW
+      PENDING_DEVELOPER_RELEASE
+      PENDING_APPLE_RELEASE
+    ].freeze
 
     def self.run(argv = ARGV)
       options = {
@@ -180,9 +187,9 @@ module ASCTooling
 
     def withdraw_from_review
       app = @asc.find_app!(@options[:bundle_id])
-      version = @asc.find_editable_version!(app, platform: platform, app_version: @options[:app_version])
+      version = @asc.find_version!(app, platform: platform, app_version: @options[:app_version])
 
-      unless version.app_store_state == "WAITING_FOR_REVIEW"
+      unless WITHDRAWABLE_STATES.include?(version.app_store_state)
         puts "Version #{version.version_string} is #{version.app_store_state}; nothing to withdraw"
         return
       end
@@ -200,7 +207,7 @@ module ASCTooling
       end
 
       @asc.delete_resource("/v1/appStoreVersionSubmissions/#{submission['id']}")
-      version = @asc.find_editable_version!(app, platform: platform, app_version: @options[:app_version])
+      version = @asc.find_version!(app, platform: platform, app_version: @options[:app_version])
 
       puts "Withdrew #{version.version_string}; version state is now #{version.app_store_state}"
     end

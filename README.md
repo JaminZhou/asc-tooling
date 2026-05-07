@@ -76,6 +76,7 @@ Then install and run through Bundler:
 bundle install
 bundle exec asc-review status --bundle-id com.example.app
 bundle exec asc-review release --bundle-id com.example.app --app-version 1.2.0
+bundle exec asc-review withdraw --bundle-id com.example.app --app-version 1.2.0
 ```
 
 If you prefer to work from a local checkout while iterating on the tool itself:
@@ -89,6 +90,7 @@ Example local usage from a checkout:
 
 ```bash
 ./exe/asc-review status --bundle-id com.example.app
+./exe/asc-review withdraw --bundle-id com.example.app --app-version 1.2.0 --dry-run
 ./exe/asc-metadata status --bundle-id com.example.app --locale en-US
 ./exe/asc-beta status --bundle-id com.example.app
 ./exe/asc-sales units --bundle-id com.example.app --vendor-number 12345678 --report-date 2026-04-10
