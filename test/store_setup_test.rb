@@ -314,7 +314,7 @@ class ASCToolingStoreSetupTest < Minitest::Test
     request = client.requests.find { |item| item[:method] == "POST" && item[:path] == "/v1/appPriceSchedules" }
     assert_equal "app-1", request.dig(:body, :data, :relationships, :app, :data, :id)
     assert_equal "USA", request.dig(:body, :data, :relationships, :baseTerritory, :data, :id)
-    assert_equal "$free-price", request.dig(:body, :data, :relationships, :manualPrices, :data, 0, :id)
+    assert_equal "${free-price}", request.dig(:body, :data, :relationships, :manualPrices, :data, 0, :id)
     assert_equal "free-price", request.dig(:body, :included, 0, :relationships, :appPricePoint, :data, :id)
     assert_nil request.dig(:body, :included, 0, :attributes, :startDate)
     assert_nil request.dig(:body, :included, 0, :attributes, :endDate)

@@ -74,8 +74,8 @@ pass. Review details require complete App Review contact information before the
 tool creates them. Creating a new review detail also requires an explicit demo
 account state: pass `--no-demo-account`, or pass `--demo-account-required` with
 `--demo-account-name` and `--demo-account-password` when reviewers need a login.
-Pricing/Availability and App Privacy should still be confirmed in App Store
-Connect for first-version submissions.
+Availability and App Privacy should still be confirmed in App Store Connect for
+first-version submissions.
 `--free-pricing` creates a free app price schedule only when no price schedule
 already exists; availability is still status-checked only.
 

@@ -176,7 +176,7 @@ module ASCTooling
       else
         actions.each { |line| puts line }
       end
-      puts "Pricing/Availability are status-checked only; confirm first-release sale settings in App Store Connect."
+      puts "Availability is status-checked only; confirm first-release sale settings in App Store Connect."
       puts "App Privacy remains an App Store Connect web item."
     end
 
@@ -515,7 +515,7 @@ module ASCTooling
     end
 
     def create_free_price_schedule!(price_point_id)
-      local_price_id = "$free-price"
+      local_price_id = "${free-price}"
       @asc.request_json(
         "POST",
         "/v1/appPriceSchedules",
