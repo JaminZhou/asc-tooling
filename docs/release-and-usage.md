@@ -127,6 +127,15 @@ bundle exec asc-beta add-tester \
   --email tester@example.com \
   --dry-run
 
+bundle exec asc-beta add-tester \
+  --bundle-id com.example.app \
+  --group-name Internal \
+  --email tester@example.com \
+  --first-name Test \
+  --last-name User \
+  --create-if-missing \
+  --dry-run
+
 bundle exec asc-beta remove-tester \
   --bundle-id com.example.app \
   --group-name Internal \
