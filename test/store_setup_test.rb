@@ -6,7 +6,8 @@ class ASCToolingStoreSetupTest < Minitest::Test
   class FakeClient
     attr_reader :requests, :updates
 
-    def initialize(primary_category: nil, secondary_category: nil, age_attrs: {}, review_detail: nil, release_type: "AFTER_APPROVAL")
+    def initialize(primary_category: nil, secondary_category: nil, age_attrs: {}, review_detail: nil,
+                   release_type: "AFTER_APPROVAL", price_schedule: nil, free_price_point_id: "free-price")
       @app = OpenStruct.new(id: "app-1", name: "Test App", bundle_id: "com.test.app")
       @app_info = OpenStruct.new(
         id: "info-1",
@@ -27,6 +28,8 @@ class ASCToolingStoreSetupTest < Minitest::Test
       @secondary_category = secondary_category
       @age_attrs = age_attrs
       @review_detail = review_detail
+      @price_schedule = price_schedule
+      @free_price_point_id = free_price_point_id
       @requests = []
       @updates = []
     end
@@ -74,15 +77,19 @@ class ASCToolingStoreSetupTest < Minitest::Test
         { "data" => @review_detail }
       when ["POST", "/v1/appStoreReviewDetails"], ["PATCH", "/v1/appStoreReviewDetails/review-1"]
         { "data" => { "id" => "review-1", "type" => "appStoreReviewDetails" } }
-      when ["GET", "/v1/apps/app-1/appPriceSchedule"], ["GET", "/v1/apps/app-1/appAvailabilityV2"]
+      when ["GET", "/v1/apps/app-1/appPriceSchedule"]
+        { "data" => @price_schedule }
+      when ["GET", "/v1/apps/app-1/appAvailabilityV2"]
         { "data" => nil }
       when ["GET", "/v1/apps/app-1/appPricePoints"]
         {
           "data" => [
-            { "id" => "free-price", "type" => "appPricePoints", "attributes" => { "customerPrice" => "0.0" } },
+            @free_price_point_id && { "id" => @free_price_point_id, "type" => "appPricePoints", "attributes" => { "customerPrice" => "0.0" } },
             { "id" => "paid-price", "type" => "appPricePoints", "attributes" => { "customerPrice" => "0.99" } }
-          ]
+          ].compact
         }
+      when ["POST", "/v1/appPriceSchedules"]
+        { "data" => { "id" => "price-schedule-1", "type" => "appPriceSchedules" } }
       else
         raise "unexpected request: #{method} #{path}"
       end
@@ -298,6 +305,52 @@ class ASCToolingStoreSetupTest < Minitest::Test
     assert_equal false, summary.dig(:availability, :present)
   end
 
+  def test_apply_creates_free_price_schedule
+    client = FakeClient.new
+    setup = build_store_setup(client, free_pricing: true)
+
+    stdout, = capture_io { setup.send(:apply) }
+
+    request = client.requests.find { |item| item[:method] == "POST" && item[:path] == "/v1/appPriceSchedules" }
+    assert_equal "app-1", request.dig(:body, :data, :relationships, :app, :data, :id)
+    assert_equal "USA", request.dig(:body, :data, :relationships, :baseTerritory, :data, :id)
+    assert_equal "$free-price", request.dig(:body, :data, :relationships, :manualPrices, :data, 0, :id)
+    assert_equal "free-price", request.dig(:body, :included, 0, :relationships, :appPricePoint, :data, :id)
+    assert_nil request.dig(:body, :included, 0, :attributes, :startDate)
+    assert_nil request.dig(:body, :included, 0, :attributes, :endDate)
+    assert_includes stdout, "Created free price schedule"
+  end
+
+  def test_apply_dry_run_reports_free_price_schedule_without_creating
+    client = FakeClient.new
+    setup = build_store_setup(client, free_pricing: true, dry_run: true)
+
+    stdout, = capture_io { setup.send(:apply) }
+
+    assert_includes stdout, "Dry run: would create free price schedule"
+    refute(client.requests.any? { |item| item[:method] == "POST" && item[:path] == "/v1/appPriceSchedules" })
+  end
+
+  def test_apply_skips_free_pricing_when_schedule_exists
+    client = FakeClient.new(price_schedule: { "id" => "existing-schedule", "type" => "appPriceSchedules" })
+    setup = build_store_setup(client, free_pricing: true)
+
+    stdout, = capture_io { setup.send(:apply) }
+
+    assert_includes stdout, "No change: price schedule already exists"
+    refute(client.requests.any? { |item| item[:method] == "POST" && item[:path] == "/v1/appPriceSchedules" })
+  end
+
+  def test_apply_skips_free_pricing_without_free_price_point
+    client = FakeClient.new(free_price_point_id: nil)
+    setup = build_store_setup(client, free_pricing: true)
+
+    stdout, = capture_io { setup.send(:apply) }
+
+    assert_includes stdout, "Skipped free pricing: no free app price point found"
+    refute(client.requests.any? { |item| item[:method] == "POST" && item[:path] == "/v1/appPriceSchedules" })
+  end
+
   private
 
   def build_store_setup(client, options = {})
@@ -309,6 +362,7 @@ class ASCToolingStoreSetupTest < Minitest::Test
         app_version: "1.0.0",
         platform: "ios",
         price_base_territory: "USA",
+        free_pricing: false,
         dry_run: false,
         json: false,
         clear_demo_account: false

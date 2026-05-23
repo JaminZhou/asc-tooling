@@ -2,6 +2,73 @@ require "json"
 require "optparse"
 
 module ASCTooling
+  class StoreSetupOptions
+    REVIEW_CONTACT_ENV = {
+      review_contact_first_name: "ASC_REVIEW_CONTACT_FIRST_NAME",
+      review_contact_last_name: "ASC_REVIEW_CONTACT_LAST_NAME",
+      review_contact_phone: "ASC_REVIEW_CONTACT_PHONE",
+      review_contact_email: "ASC_REVIEW_CONTACT_EMAIL"
+    }.freeze
+
+    def self.parse(argv)
+      options = default_options(argv.shift)
+      parser = option_parser(options)
+      parser.parse!(argv)
+
+      [options, parser]
+    end
+
+    def self.default_options(command)
+      options = {
+        command: command,
+        platform: "macos",
+        dry_run: false,
+        json: false,
+        price_base_territory: "USA",
+        free_pricing: false,
+        clear_demo_account: false
+      }
+
+      REVIEW_CONTACT_ENV.each do |key, env_name|
+        options[key] = ENV.fetch(env_name, nil)
+      end
+
+      options
+    end
+    private_class_method :default_options
+
+    def self.option_parser(options)
+      OptionParser.new do |opts|
+        opts.banner = "Usage: asc-store-setup <status|apply> --bundle-id com.example.app --app-version 1.0.0 [options]"
+        opts.on("--bundle-id BUNDLE_ID", "App bundle identifier") { |value| options[:bundle_id] = value }
+        opts.on("--app-version VERSION", "Editable App Store version") { |value| options[:app_version] = value }
+        opts.on("--platform PLATFORM", "ios, macos, or tvos (default: macos)") { |value| options[:platform] = value }
+        opts.on("--primary-category ID", "Primary App Store category id, e.g. SHOPPING") { |value| options[:primary_category] = value }
+        opts.on("--secondary-category ID", "Secondary App Store category id") { |value| options[:secondary_category] = value }
+        opts.on("--age-rating-template TEMPLATE", "Age rating template, currently: 4-plus") { |value| options[:age_rating_template] = value }
+        opts.on("--release-type TYPE", "manual or after-approval") { |value| options[:release_type] = value }
+        opts.on("--price-base-territory ID", "Base territory for free price-point lookup") { |value| options[:price_base_territory] = value }
+        opts.on("--free-pricing", "Create a free app price schedule when one is missing") { options[:free_pricing] = true }
+        opts.on("--review-contact-first-name NAME", "App Review contact first name") { |value| options[:review_contact_first_name] = value }
+        opts.on("--review-contact-last-name NAME", "App Review contact last name") { |value| options[:review_contact_last_name] = value }
+        opts.on("--review-contact-phone PHONE", "App Review contact phone") { |value| options[:review_contact_phone] = value }
+        opts.on("--review-contact-email EMAIL", "App Review contact email") { |value| options[:review_contact_email] = value }
+        opts.on("--review-notes TEXT", "App Review notes") { |value| options[:review_notes] = value }
+        opts.on("--review-notes-file PATH", "Text file for App Review notes") { |value| options[:review_notes_file] = value }
+        opts.on("--demo-account-required", "Mark review detail as requiring a demo account") { options[:demo_account_required] = true }
+        opts.on("--demo-account-name NAME", "Demo account username for App Review") { |value| options[:demo_account_name] = value }
+        opts.on("--demo-account-password PASSWORD", "Demo account password for App Review") { |value| options[:demo_account_password] = value }
+        opts.on("--no-demo-account", "Mark review detail as not requiring a demo account") { options[:clear_demo_account] = true }
+        opts.on("--key-id KEY_ID", "ASC API key id") { |value| options[:key_id] = value }
+        opts.on("--issuer-id ISSUER_ID", "ASC API issuer id") { |value| options[:issuer_id] = value }
+        opts.on("--key-path PATH", "Path to ASC API .p8 key") { |value| options[:key_path] = value }
+        opts.on("--dry-run", "Print changes without mutating App Store Connect") { options[:dry_run] = true }
+        opts.on("--json", "Print machine-readable JSON") { options[:json] = true }
+      end
+    end
+    private_class_method :option_parser
+  end
+
   class StoreSetup
     AGE_RATING_TEMPLATES = {
       "4-plus" => {
@@ -34,55 +101,8 @@ module ASCTooling
       }.freeze
     }.freeze
 
-    REVIEW_CONTACT_ENV = {
-      review_contact_first_name: "ASC_REVIEW_CONTACT_FIRST_NAME",
-      review_contact_last_name: "ASC_REVIEW_CONTACT_LAST_NAME",
-      review_contact_phone: "ASC_REVIEW_CONTACT_PHONE",
-      review_contact_email: "ASC_REVIEW_CONTACT_EMAIL"
-    }.freeze
-
     def self.run(argv = ARGV)
-      options = {
-        command: argv.shift,
-        platform: "macos",
-        dry_run: false,
-        json: false,
-        price_base_territory: "USA",
-        clear_demo_account: false
-      }
-
-      REVIEW_CONTACT_ENV.each do |key, env_name|
-        options[key] = ENV.fetch(env_name, nil)
-      end
-
-      parser = OptionParser.new do |opts|
-        opts.banner = "Usage: asc-store-setup <status|apply> --bundle-id com.example.app --app-version 1.0.0 [options]"
-        opts.on("--bundle-id BUNDLE_ID", "App bundle identifier") { |value| options[:bundle_id] = value }
-        opts.on("--app-version VERSION", "Editable App Store version") { |value| options[:app_version] = value }
-        opts.on("--platform PLATFORM", "ios, macos, or tvos (default: macos)") { |value| options[:platform] = value }
-        opts.on("--primary-category ID", "Primary App Store category id, e.g. SHOPPING") { |value| options[:primary_category] = value }
-        opts.on("--secondary-category ID", "Secondary App Store category id") { |value| options[:secondary_category] = value }
-        opts.on("--age-rating-template TEMPLATE", "Age rating template, currently: 4-plus") { |value| options[:age_rating_template] = value }
-        opts.on("--release-type TYPE", "manual or after-approval") { |value| options[:release_type] = value }
-        opts.on("--price-base-territory ID", "Base territory for free price-point lookup") { |value| options[:price_base_territory] = value }
-        opts.on("--review-contact-first-name NAME", "App Review contact first name") { |value| options[:review_contact_first_name] = value }
-        opts.on("--review-contact-last-name NAME", "App Review contact last name") { |value| options[:review_contact_last_name] = value }
-        opts.on("--review-contact-phone PHONE", "App Review contact phone") { |value| options[:review_contact_phone] = value }
-        opts.on("--review-contact-email EMAIL", "App Review contact email") { |value| options[:review_contact_email] = value }
-        opts.on("--review-notes TEXT", "App Review notes") { |value| options[:review_notes] = value }
-        opts.on("--review-notes-file PATH", "Text file for App Review notes") { |value| options[:review_notes_file] = value }
-        opts.on("--demo-account-required", "Mark review detail as requiring a demo account") { options[:demo_account_required] = true }
-        opts.on("--demo-account-name NAME", "Demo account username for App Review") { |value| options[:demo_account_name] = value }
-        opts.on("--demo-account-password PASSWORD", "Demo account password for App Review") { |value| options[:demo_account_password] = value }
-        opts.on("--no-demo-account", "Mark review detail as not requiring a demo account") { options[:clear_demo_account] = true }
-        opts.on("--key-id KEY_ID", "ASC API key id") { |value| options[:key_id] = value }
-        opts.on("--issuer-id ISSUER_ID", "ASC API issuer id") { |value| options[:issuer_id] = value }
-        opts.on("--key-path PATH", "Path to ASC API .p8 key") { |value| options[:key_path] = value }
-        opts.on("--dry-run", "Print changes without mutating App Store Connect") { options[:dry_run] = true }
-        opts.on("--json", "Print machine-readable JSON") { options[:json] = true }
-      end
-
-      parser.parse!(argv)
+      options, parser = StoreSetupOptions.parse(argv)
 
       if options[:command].nil? || options[:bundle_id].nil? || options[:app_version].nil?
         warn parser.banner
@@ -142,6 +162,7 @@ module ASCTooling
         apply_release_type,
         apply_category,
         apply_age_rating,
+        apply_free_pricing,
         apply_review_detail
       ].compact
 
@@ -151,7 +172,7 @@ module ASCTooling
       end
 
       if actions.empty?
-        puts "No configured store setup actions. Pass category, release type, age rating, or review detail options."
+        puts "No configured store setup actions. Pass category, release type, age rating, pricing, or review detail options."
       else
         actions.each { |line| puts line }
       end
@@ -294,6 +315,26 @@ module ASCTooling
         }
       )
       "Created App Review detail."
+    end
+
+    def apply_free_pricing
+      return nil unless @options[:free_pricing]
+
+      schedule = price_schedule
+      if schedule
+        message = "No change: price schedule already exists"
+        message += " (#{schedule['id']})" if schedule["id"]
+        return "#{message}."
+      end
+
+      price_point_id = free_price_point_id
+      return "Skipped free pricing: no free app price point found for #{@options[:price_base_territory]}." unless present?(price_point_id)
+
+      return "Dry run: would create free price schedule using #{@options[:price_base_territory]} price point #{price_point_id}." if @options[:dry_run]
+
+      create_free_price_schedule!(price_point_id)
+      @price_schedule = nil
+      "Created free price schedule using #{@options[:price_base_territory]} price point #{price_point_id}."
     end
 
     def status_summary
@@ -471,6 +512,48 @@ module ASCTooling
         ).fetch("data", [])
         data.find { |item| item.dig("attributes", "customerPrice").to_f.zero? }&.fetch("id", nil)
       end
+    end
+
+    def create_free_price_schedule!(price_point_id)
+      local_price_id = "$free-price"
+      @asc.request_json(
+        "POST",
+        "/v1/appPriceSchedules",
+        body: {
+          data: {
+            type: "appPriceSchedules",
+            attributes: {},
+            relationships: {
+              app: {
+                data: { type: "apps", id: app.id }
+              },
+              baseTerritory: {
+                data: { type: "territories", id: @options[:price_base_territory] }
+              },
+              manualPrices: {
+                data: [
+                  { type: "appPrices", id: local_price_id }
+                ]
+              }
+            }
+          },
+          included: [
+            {
+              type: "appPrices",
+              id: local_price_id,
+              attributes: {
+                startDate: nil,
+                endDate: nil
+              },
+              relationships: {
+                appPricePoint: {
+                  data: { type: "appPricePoints", id: price_point_id }
+                }
+              }
+            }
+          ]
+        }
+      )
     end
 
     def optional_json(method, path, params: nil, body: nil)
