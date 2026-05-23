@@ -21,9 +21,7 @@ class ASCToolingAvailabilityTest < Minitest::Test
 
       case path
       when "/v1/apps/#{@app.id}/appAvailabilityV2"
-        unless @availability_present
-          raise ASCTooling::APIError.new("GET #{path}", 404, { "errors" => [] })
-        end
+        raise ASCTooling::APIError.new("GET #{path}", 404, { "errors" => [] }) unless @availability_present
 
         {
           "data" => {
