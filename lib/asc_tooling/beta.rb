@@ -191,6 +191,7 @@ module ASCTooling
     def add_tester
       app = @asc.find_app!(@options[:bundle_id])
       group = target_group!(app.id)
+      @created_tester_in_target_group = false
       tester = target_tester!(app.id, group: group, allow_create: @options[:create_if_missing])
 
       if group_tester_ids(group).include?(tester["id"])
@@ -200,6 +201,11 @@ module ASCTooling
 
       if @options[:dry_run]
         puts "Dry run: would add tester #{tester_label(tester)} to beta group #{group.dig('attributes', 'name')}."
+        return
+      end
+
+      if @created_tester_in_target_group
+        puts "Added tester #{tester_label(tester)} to beta group #{group.dig('attributes', 'name')}."
         return
       end
 
@@ -337,9 +343,9 @@ module ASCTooling
         resolved_global_tester = resolve_global_tester(global_testers, app_id: app_id, group: group)
         return resolved_global_tester if resolved_global_tester
 
-        raise ArgumentError, "multiple testers found for #{email.inspect}; use --tester-id to disambiguate" if global_testers.size > 1
+        return create_beta_tester!(email, group: group) if allow_create
 
-        return create_beta_tester!(email) if allow_create
+        raise ArgumentError, "multiple testers found for #{email.inspect}; use --tester-id to disambiguate" if global_testers.size > 1
 
         raise ArgumentError, "tester #{email.inspect} not found; retry with --create-if-missing to create one"
       else
@@ -437,7 +443,7 @@ module ASCTooling
       raise ArgumentError, "beta tester #{tester_id} not found"
     end
 
-    def create_beta_tester!(email)
+    def create_beta_tester!(email, group:)
       first_name = @options[:first_name]
       last_name = @options[:last_name]
 
@@ -457,6 +463,7 @@ module ASCTooling
         }
       end
 
+      @created_tester_in_target_group = true
       @asc.request_json(
         "POST",
         "/v1/betaTesters",
@@ -467,6 +474,16 @@ module ASCTooling
               email: email,
               firstName: first_name,
               lastName: last_name
+            },
+            relationships: {
+              betaGroups: {
+                data: [
+                  {
+                    type: "betaGroups",
+                    id: group.fetch("id")
+                  }
+                ]
+              }
             }
           }
         }
