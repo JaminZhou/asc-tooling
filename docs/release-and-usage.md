@@ -59,6 +59,7 @@ bundle exec asc-store-setup apply \
   --release-type manual \
   --primary-category SHOPPING \
   --age-rating-template 4-plus \
+  --free-pricing \
   --review-contact-first-name Jamin \
   --review-contact-last-name Zhou \
   --review-contact-phone "+1 555 0100" \
@@ -75,6 +76,8 @@ account state: pass `--no-demo-account`, or pass `--demo-account-required` with
 `--demo-account-name` and `--demo-account-password` when reviewers need a login.
 Pricing/Availability and App Privacy should still be confirmed in App Store
 Connect for first-version submissions.
+`--free-pricing` creates a free app price schedule only when no price schedule
+already exists; availability is still status-checked only.
 
 ### Screenshots
 

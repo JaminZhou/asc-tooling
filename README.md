@@ -115,9 +115,9 @@ is submitted.
 Store Connect territory and reports any missing territory IDs.
 
 `asc-store-setup` checks and optionally applies repeatable App Store Connect
-store setup fields such as release type, categories, age rating templates, and
-App Review details. Pricing/Availability and App Privacy remain status or web
-confirmation items.
+store setup fields such as release type, categories, age rating templates,
+free app pricing, and App Review details. App availability and App Privacy
+remain status or web confirmation items.
 
 For a fuller usage guide and the release flow, see
 [docs/release-and-usage.md](docs/release-and-usage.md).
