@@ -17,7 +17,7 @@ reports.
 - screenshot inspection and upload
 - TestFlight group and tester management
 - in-app purchase readiness helpers
-- app territory availability checks
+- app territory availability checks and global new-territory enablement
 - Sales and Trends report download plus unit summaries
 
 ## Commands
@@ -97,6 +97,7 @@ Example local usage from a checkout:
 ./exe/asc-screenshots status --bundle-id com.example.app --locale en-US --display-type APP_DESKTOP
 ./exe/asc-iap status --bundle-id com.example.app
 ./exe/asc-availability status --bundle-id com.example.app
+./exe/asc-availability apply --bundle-id com.example.app --available-in-new-territories --dry-run
 ./exe/asc-store-setup status --bundle-id com.example.app --app-version 1.0.0 --platform ios
 ```
 
@@ -112,12 +113,13 @@ attached to the app version in the App Store Connect web UI before that version
 is submitted.
 
 `asc-availability` checks whether the app is available in every current App
-Store Connect territory and reports any missing territory IDs.
+Store Connect territory, reports any missing territory IDs, and can set the app
+level `availableInNewTerritories` flag through the App Store Connect API.
 
 `asc-store-setup` checks and optionally applies repeatable App Store Connect
 store setup fields such as release type, categories, age rating templates,
-free app pricing, and App Review details. App availability and App Privacy
-remain status or web confirmation items.
+free app pricing, and App Review details. App Privacy remains a web
+confirmation item.
 
 For a fuller usage guide and the release flow, see
 [docs/release-and-usage.md](docs/release-and-usage.md).
