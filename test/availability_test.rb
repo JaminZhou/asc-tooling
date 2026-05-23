@@ -2,14 +2,16 @@ require_relative "test_helper"
 
 class ASCToolingAvailabilityTest < Minitest::Test
   class FakeClient
-    attr_reader :requests
+    attr_reader :requests, :updates
 
-    def initialize(app:, territory_ids:, available_territory_ids:, available_in_new_territories: true)
+    def initialize(app:, territory_ids:, available_territory_ids:, available_in_new_territories: true, availability_present: true)
       @app = app
       @territory_ids = territory_ids
       @available_territory_ids = available_territory_ids
       @available_in_new_territories = available_in_new_territories
+      @availability_present = availability_present
       @requests = []
+      @updates = []
     end
 
     def find_app!(_bundle_id) = @app
@@ -19,6 +21,8 @@ class ASCToolingAvailabilityTest < Minitest::Test
 
       case path
       when "/v1/apps/#{@app.id}/appAvailabilityV2"
+        raise ASCTooling::APIError.new("GET #{path}", 404, { "errors" => [] }) unless @availability_present
+
         {
           "data" => {
             "id" => "availability-1",
@@ -51,6 +55,11 @@ class ASCToolingAvailabilityTest < Minitest::Test
       else
         raise "unexpected request: #{method} #{path}"
       end
+    end
+
+    def update_resource(type, id, attributes:)
+      @updates << { type: type, id: id, attributes: attributes }
+      @available_in_new_territories = attributes.fetch(:available_in_new_territories) if type == "apps"
     end
 
     def format_api_errors(_payload) = ""
@@ -89,6 +98,29 @@ class ASCToolingAvailabilityTest < Minitest::Test
     assert_equal ["CAN"], summary.dig(:availability, :missing_territory_ids)
   end
 
+  def test_status_summary_reports_missing_availability_resource
+    app = OpenStruct.new(
+      id: "app-1",
+      name: "Test",
+      bundle_id: "com.test",
+      raw: { "attributes" => { "availableInNewTerritories" => true } }
+    )
+    client = FakeClient.new(
+      app: app,
+      territory_ids: %w[JPN USA],
+      available_territory_ids: [],
+      availability_present: false
+    )
+    availability = build_availability(client)
+
+    summary = availability.send(:status_summary)
+
+    assert_equal false, summary[:ok]
+    assert_equal "availability_missing", summary[:status]
+    assert_equal false, summary.dig(:availability, :present)
+    assert_equal true, summary.dig(:availability, :available_in_new_territories)
+  end
+
   def test_status_summary_excludes_unknown_territories_from_available_count
     app = OpenStruct.new(id: "app-1", name: "Test", bundle_id: "com.test")
     client = FakeClient.new(app: app, territory_ids: %w[JPN USA], available_territory_ids: %w[JPN USA XYZ])
@@ -116,6 +148,65 @@ class ASCToolingAvailabilityTest < Minitest::Test
     assert_equal 0, parsed.dig("availability", "missing_territory_count")
   end
 
+  def test_apply_dry_run_reports_requested_change
+    app = OpenStruct.new(id: "app-1", name: "Test", bundle_id: "com.test")
+    client = FakeClient.new(
+      app: app,
+      territory_ids: %w[JPN USA],
+      available_territory_ids: %w[JPN USA],
+      available_in_new_territories: false
+    )
+    availability = build_availability(client, available_in_new_territories: true, dry_run: true)
+
+    result = availability.send(:apply_availability)
+
+    assert_equal true, result[:dry_run]
+    assert_equal true, result[:changed]
+    assert_equal false, result.dig(:available_in_new_territories, :from)
+    assert_equal true, result.dig(:available_in_new_territories, :to)
+    assert_empty client.updates
+  end
+
+  def test_apply_updates_app_available_in_new_territories
+    app = OpenStruct.new(id: "app-1", name: "Test", bundle_id: "com.test")
+    client = FakeClient.new(
+      app: app,
+      territory_ids: %w[JPN USA],
+      available_territory_ids: %w[JPN USA],
+      available_in_new_territories: false
+    )
+    availability = build_availability(client, available_in_new_territories: true)
+
+    result = availability.send(:apply_availability)
+
+    assert_equal false, result[:dry_run]
+    assert_equal true, result[:changed]
+    assert_equal [
+      {
+        type: "apps",
+        id: "app-1",
+        attributes: { available_in_new_territories: true }
+      }
+    ], client.updates
+  end
+
+  def test_apply_noops_when_available_in_new_territories_matches
+    app = OpenStruct.new(id: "app-1", name: "Test", bundle_id: "com.test")
+    client = FakeClient.new(
+      app: app,
+      territory_ids: %w[JPN USA],
+      available_territory_ids: %w[JPN USA],
+      available_in_new_territories: true
+    )
+    availability = build_availability(client, available_in_new_territories: true)
+
+    result = availability.send(:apply_availability)
+
+    assert_equal false, result[:changed]
+    assert_includes result[:message], "No change"
+    assert_empty client.updates
+  end
+
   private
 
   def build_availability(client, options = {})
@@ -123,7 +214,8 @@ class ASCToolingAvailabilityTest < Minitest::Test
     availability.instance_variable_set(
       :@options,
       {
-        bundle_id: "com.test"
+        bundle_id: "com.test",
+        dry_run: false
       }.merge(options)
     )
     availability.instance_variable_set(:@asc, client)

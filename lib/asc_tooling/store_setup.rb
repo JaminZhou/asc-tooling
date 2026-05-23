@@ -176,7 +176,7 @@ module ASCTooling
       else
         actions.each { |line| puts line }
       end
-      puts "Availability is status-checked only; confirm first-release sale settings in App Store Connect."
+      puts "Use asc-availability to confirm or update app availability."
       puts "App Privacy remains an App Store Connect web item."
     end
 

@@ -77,7 +77,24 @@ account state: pass `--no-demo-account`, or pass `--demo-account-required` with
 Availability and App Privacy should still be confirmed in App Store Connect for
 first-version submissions.
 `--free-pricing` creates a free app price schedule only when no price schedule
-already exists; availability is still status-checked only.
+already exists.
+
+### Availability
+
+```bash
+bundle exec asc-availability status --bundle-id com.example.app
+
+bundle exec asc-availability apply \
+  --bundle-id com.example.app \
+  --available-in-new-territories \
+  --dry-run
+```
+
+`asc-availability status` checks the current app availability resource when it
+exists and reports missing territory IDs. `asc-availability apply` sets the app
+level `availableInNewTerritories` flag through the App Store Connect API. Pass
+`--no-available-in-new-territories` when the product should not auto-enable new
+territories.
 
 ### Screenshots
 
