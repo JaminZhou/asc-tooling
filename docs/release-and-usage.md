@@ -86,15 +86,16 @@ bundle exec asc-availability status --bundle-id com.example.app
 
 bundle exec asc-availability apply \
   --bundle-id com.example.app \
+  --all-territories \
   --available-in-new-territories \
   --dry-run
 ```
 
 `asc-availability status` checks the current app availability resource when it
-exists and reports missing territory IDs. `asc-availability apply` sets the app
-level `availableInNewTerritories` flag through the App Store Connect API. Pass
-`--no-available-in-new-territories` when the product should not auto-enable new
-territories.
+exists and reports missing territory IDs. `asc-availability apply` creates the
+app availability resource for all current territories through the
+`/v2/appAvailabilities` endpoint. Pass `--no-available-in-new-territories` when
+the product should not auto-enable new territories.
 
 ### Screenshots
 

@@ -9,7 +9,8 @@ module ASCTooling
     def self.run(argv = ARGV)
       options = {
         command: argv.shift,
-        dry_run: false
+        dry_run: false,
+        all_territories: false
       }
 
       parser = OptionParser.new do |opts|
@@ -18,6 +19,9 @@ module ASCTooling
         opts.on("--bundle-id BUNDLE_ID", "App bundle identifier") { |value| options[:bundle_id] = value }
         opts.on("--[no-]available-in-new-territories", "Set whether new App Store territories are auto-enabled") do |value|
           options[:available_in_new_territories] = value
+        end
+        opts.on("--all-territories", "Make the app available in every current App Store territory") do
+          options[:all_territories] = true
         end
         opts.on("--key-id KEY_ID", "ASC API key id") { |value| options[:key_id] = value }
         opts.on("--issuer-id ISSUER_ID", "ASC API issuer id") { |value| options[:issuer_id] = value }
@@ -72,7 +76,7 @@ module ASCTooling
       puts "App: #{summary[:app_name]} (#{summary[:bundle_id]})"
       puts "Availability: #{summary[:ok] ? 'ready' : 'gap'}"
       puts "Territories: #{availability[:available_territory_count]}/#{availability[:all_territory_count]}"
-      puts "Available in new territories: #{availability[:available_in_new_territories] ? 'yes' : 'no'}"
+      puts "Available in new territories: #{yes_no(availability[:available_in_new_territories])}"
 
       if availability[:missing_territory_ids].empty?
         puts "Missing territories: none"
@@ -100,33 +104,51 @@ module ASCTooling
       target = @options.fetch(:available_in_new_territories) do
         raise ArgumentError, "pass --available-in-new-territories or --no-available-in-new-territories"
       end
+      raise ArgumentError, "pass --all-territories to create App Store territory availability" unless @options[:all_territories]
 
+      desired_territories = territory_ids
       current = current_available_in_new_territories
+      availability = availability_resource
+      current_available_territories = availability ? available_territory_ids(availability.fetch("id")) : []
+      missing_territories = desired_territories - current_available_territories
+      changed = availability.nil? || missing_territories.any? || current != target
       result = {
         dry_run: @options[:dry_run],
-        changed: current != target,
+        changed: changed,
         app_id: app.id,
         bundle_id: @options[:bundle_id],
         available_in_new_territories: {
           from: current,
           to: target
+        },
+        territories: {
+          desired_count: desired_territories.size,
+          currently_available_count: current_available_territories.size,
+          missing_count: missing_territories.size,
+          missing_ids: missing_territories
         }
       }
 
-      if current == target
-        result[:message] = "No change: available in new territories already #{yes_no(target)}."
+      unless changed
+        result[:message] = "No change: app availability already covers #{desired_territories.size} territories."
         return result
       end
 
       if @options[:dry_run]
-        result[:message] = "Dry run: would set available in new territories #{yes_no(current)} -> #{yes_no(target)}."
+        result[:message] = if availability
+                             "Dry run: would update app availability for #{missing_territories.size} missing territories."
+                           else
+                             "Dry run: would create app availability for #{desired_territories.size} territories."
+                           end
         return result
       end
 
-      @asc.update_resource("apps", app.id, attributes: { available_in_new_territories: target })
-      @app = nil
+      raise ArgumentError, "updating existing app availability territory gaps is not implemented yet" if availability
+
+      created = create_app_availability!(target, desired_territories)
       @availability = nil
-      result[:message] = "Updated available in new territories to #{yes_no(target)}."
+      result[:created_availability_id] = created.fetch("id")
+      result[:message] = "Created app availability #{created.fetch('id')} for #{desired_territories.size} territories."
       result
     end
 
@@ -196,6 +218,54 @@ module ASCTooling
       return "unknown" if value.nil?
 
       value ? "yes" : "no"
+    end
+
+    def create_app_availability!(available_in_new_territories, territory_ids)
+      territory_refs = []
+      included = territory_ids.map do |territory_id|
+        local_id = "${territory-#{territory_id}}"
+        territory_refs << { type: "territoryAvailabilities", id: local_id }
+        {
+          type: "territoryAvailabilities",
+          id: local_id,
+          attributes: {
+            available: true
+          },
+          relationships: {
+            territory: {
+              data: {
+                type: "territories",
+                id: territory_id
+              }
+            }
+          }
+        }
+      end
+
+      @asc.request_json(
+        "POST",
+        "/v2/appAvailabilities",
+        body: {
+          data: {
+            type: "appAvailabilities",
+            attributes: {
+              availableInNewTerritories: available_in_new_territories
+            },
+            relationships: {
+              app: {
+                data: {
+                  type: "apps",
+                  id: app.id
+                }
+              },
+              territoryAvailabilities: {
+                data: territory_refs
+              }
+            }
+          },
+          included: included
+        }
+      ).fetch("data")
     end
 
     def territory_ids

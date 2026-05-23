@@ -97,7 +97,7 @@ Example local usage from a checkout:
 ./exe/asc-screenshots status --bundle-id com.example.app --locale en-US --display-type APP_DESKTOP
 ./exe/asc-iap status --bundle-id com.example.app
 ./exe/asc-availability status --bundle-id com.example.app
-./exe/asc-availability apply --bundle-id com.example.app --available-in-new-territories --dry-run
+./exe/asc-availability apply --bundle-id com.example.app --all-territories --available-in-new-territories --dry-run
 ./exe/asc-store-setup status --bundle-id com.example.app --app-version 1.0.0 --platform ios
 ```
 
@@ -113,8 +113,8 @@ attached to the app version in the App Store Connect web UI before that version
 is submitted.
 
 `asc-availability` checks whether the app is available in every current App
-Store Connect territory, reports any missing territory IDs, and can set the app
-level `availableInNewTerritories` flag through the App Store Connect API.
+Store Connect territory, reports any missing territory IDs, and can create app
+availability for all current territories through the App Store Connect API.
 
 `asc-store-setup` checks and optionally applies repeatable App Store Connect
 store setup fields such as release type, categories, age rating templates,
