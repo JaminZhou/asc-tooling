@@ -8,6 +8,8 @@ for product repositories that consume `asc_tooling`.
 
 ## Unreleased
 
+## 0.9.0 - 2026-06-30
+
 ### Added
 
 - Added `asc-tooling` as a unified CLI entrypoint for command discovery,
