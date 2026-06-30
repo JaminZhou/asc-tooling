@@ -15,7 +15,21 @@ Gem::Specification.new do |spec|
   spec.required_ruby_version = ">= 3.0"
 
   spec.files = Dir.chdir(__dir__) do
-    Dir["exe/*", "lib/**/*.rb", "*.gemspec", "Gemfile", "README*", "LICENSE*"]
+    Dir[
+      "exe/*",
+      "lib/**/*.rb",
+      "docs/**/*.md",
+      "skills/**/*",
+      "*.gemspec",
+      "Gemfile",
+      "README*",
+      "LICENSE*",
+      "CHANGELOG.md",
+      "CONTRIBUTING.md",
+      "SECURITY.md",
+      "CODE_OF_CONDUCT.md",
+      "AGENTS.md"
+    ]
   end
   spec.bindir = "exe"
   spec.executables = %w[
@@ -28,11 +42,17 @@ Gem::Specification.new do |spec|
     asc-version
     asc-availability
     asc-store-setup
+    asc-tooling
   ]
   spec.require_paths = ["lib"]
 
+  spec.add_dependency "csv", ">= 3.0"
   spec.add_dependency "jwt", ">= 2.1"
   spec.add_development_dependency "minitest", ">= 5.0"
+  spec.add_development_dependency "ostruct", ">= 0"
   spec.add_development_dependency "rubocop", ">= 1.0"
+  spec.metadata["bug_tracker_uri"] = "https://github.com/JaminZhou/asc-tooling/issues"
+  spec.metadata["changelog_uri"] = "https://github.com/JaminZhou/asc-tooling/blob/main/CHANGELOG.md"
   spec.metadata["rubygems_mfa_required"] = "true"
+  spec.metadata["source_code_uri"] = "https://github.com/JaminZhou/asc-tooling"
 end

@@ -1,0 +1,146 @@
+# asc-tooling
+
+[![CI](https://github.com/JaminZhou/asc-tooling/actions/workflows/ci.yml/badge.svg)](https://github.com/JaminZhou/asc-tooling/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/JaminZhou/asc-tooling?sort=semver)](https://github.com/JaminZhou/asc-tooling/releases)
+[![Ruby](https://img.shields.io/badge/ruby-3.1--3.3-red.svg)](.github/workflows/ci.yml)
+[![Status](https://img.shields.io/badge/status-production%20local%20tooling-2563eb.svg)](CHANGELOG.md)
+[![Agent Skill](https://img.shields.io/badge/Agent%20skill-Codex%20%2F%20Claude-111827.svg)](skills/asc-tooling/SKILL.md)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+语言：[English](README.md) | 中文
+
+`asc_tooling` 是从产品仓库中抽出的 App Store Connect 自动化工具集，用统一 CLI、细分子命令和内置 Agent/Codex/Claude skill 覆盖审核、元数据、商店设置、截图、TestFlight、内购、版本、可售地区和 Sales and Trends 报表流程。
+
+> 重要边界：本项目不是 Apple 官方工具。它使用调用方提供的 App Store Connect API 凭证，只通过显式 CLI 命令执行 App Store Connect 动作；仓库中不得保存 `.p8` 密钥、浏览器 Cookie、产品密钥或具体 app 的发布状态。
+
+## 覆盖范围
+
+- App Review 提交、撤回和手动发布
+- App 版本创建
+- 元数据检查和更新
+- 商店设置检查与应用，包括分类、年龄分级、发布类型和审核信息
+- 截图检查与上传
+- TestFlight 分组、构建和测试员管理
+- 内购准备度辅助
+- App 可售地区检查和新增地区启用
+- Sales and Trends 报表下载与销量汇总
+
+## 命令
+
+- `asc-tooling`
+- `asc-review`
+- `asc-metadata`
+- `asc-beta`
+- `asc-sales`
+- `asc-screenshots`
+- `asc-iap`
+- `asc-version`
+- `asc-availability`
+- `asc-store-setup`
+
+产品专属资产，例如截图渲染器、发布说明模板和 app-specific release state，应该留在具体产品仓库中。
+
+## 环境变量
+
+所有命令都需要：
+
+- `ASC_KEY_ID`
+- `ASC_ISSUER_ID`
+- `ASC_KEY_PATH`
+
+`asc-sales` 还需要：
+
+- `ASC_VENDOR_NUMBER`
+
+## 安装
+
+当前项目通过 GitHub tag 分发，而不是 RubyGems。
+
+在产品仓库的 `Gemfile` 中引用：
+
+```ruby
+gem "asc_tooling",
+  git: "https://github.com/JaminZhou/asc-tooling.git",
+  tag: "v0.8.6"
+```
+
+`v0.8.6` 早于统一 `asc-tooling` CLI。使用这个 tag 时，通过 Bundler
+运行旧的可执行命令：
+
+```bash
+bundle install
+bundle exec asc-review status --bundle-id com.example.app
+bundle exec asc-review release --bundle-id com.example.app --app-version 1.2.0
+```
+
+从本地 checkout 调试工具本身：
+
+```bash
+bundle install
+./exe/asc-tooling commands
+./exe/asc-review status --bundle-id com.example.app
+```
+
+## 统一 CLI 与 Skill
+
+新自动化优先使用 `asc-tooling` 入口。它会委派到现有命令实现，同时给人和 agent 一个稳定的命令发现、执行和 skill 安装入口。
+本节命令需要使用包含 Unreleased CLI 改动的 checkout 或未来 release。
+
+```bash
+bundle exec asc-tooling commands
+bundle exec asc-tooling review status --bundle-id com.example.app
+bundle exec asc-tooling version create --bundle-id com.example.app --version 1.2.0 --platform ios --dry-run
+bundle exec asc-tooling availability status --bundle-id com.example.app
+```
+
+安装内置 skill：
+
+```bash
+bundle exec asc-tooling init --client codex --force    # $CODEX_HOME/skills，或 ~/.codex/skills
+bundle exec asc-tooling init --client agents --force   # ~/.agents/skills
+bundle exec asc-tooling init --client claude --force   # $CLAUDE_CONFIG_DIR/skills，或 ~/.claude/skills
+bundle exec asc-tooling init --print
+```
+
+`--client codex` 使用 Codex 自身的 `CODEX_HOME` 约定；`--client agents`
+使用兼容 Agent Skills 的开放用户目录；`--client claude` 使用 Claude Code
+的 `CLAUDE_CONFIG_DIR` 约定，未设置时回落到 `~/.claude`。
+
+旧的可执行命令仍然保留，方便现有脚本继续使用：
+
+```bash
+./exe/asc-review status --bundle-id com.example.app
+./exe/asc-review withdraw --bundle-id com.example.app --app-version 1.2.0 --dry-run
+./exe/asc-metadata status --bundle-id com.example.app --locale en-US
+./exe/asc-beta status --bundle-id com.example.app
+./exe/asc-sales units --bundle-id com.example.app --vendor-number 12345678 --report-date 2026-04-10
+./exe/asc-screenshots status --bundle-id com.example.app --locale en-US --display-type APP_DESKTOP
+./exe/asc-iap status --bundle-id com.example.app
+./exe/asc-version create --bundle-id com.example.app --version 1.2.0 --platform ios --dry-run
+./exe/asc-availability status --bundle-id com.example.app
+./exe/asc-store-setup status --bundle-id com.example.app --app-version 1.0.0 --platform ios
+```
+
+更完整的使用说明和发布流程见 [docs/release-and-usage.md](docs/release-and-usage.md)。
+
+## 支持边界
+
+正式支持的是基于 JWT 的 CLI 工作流：
+
+- `asc-tooling`
+- `asc-review`
+- `asc-metadata`
+- `asc-beta`
+- `asc-sales`
+- `asc-screenshots`
+- `asc-iap`
+- `asc-version`
+- `asc-availability`
+- `asc-store-setup`
+
+`experimental/` 下的 Resolution Center 辅助工具只用于本地浏览器会话调试，不属于稳定公共接口，不应在 CI、共享发布脚本或产品自动化中使用。任何导出的 Cookie JSON 都必须留在仓库外，并在使用后立即删除。
+
+## 贡献
+
+贡献流程见 [CONTRIBUTING.md](CONTRIBUTING.md)。安全问题请按 [SECURITY.md](SECURITY.md) 处理，不要在公开 issue 中粘贴凭证、Cookie、`.p8` 密钥或产品敏感信息。
+发布历史见 [CHANGELOG.md](CHANGELOG.md)。

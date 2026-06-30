@@ -1,0 +1,36 @@
+name: App Store Connect API change
+description: Report a changed Apple API response, endpoint behavior, or ASC workflow.
+title: "[ASC API]: "
+labels: ["asc-api"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not include private keys, JWTs, cookies, account identifiers, or unreleased product data.
+  - type: input
+    id: command
+    attributes:
+      label: Affected command
+      placeholder: "asc-review, asc-metadata, asc-beta, ..."
+    validations:
+      required: true
+  - type: textarea
+    id: observed
+    attributes:
+      label: Observed API or workflow change
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected handling
+  - type: input
+    id: checked_at
+    attributes:
+      label: Checked at
+      placeholder: "2026-06-30"
+  - type: textarea
+    id: sanitized_sample
+    attributes:
+      label: Sanitized sample
+      description: Small, redacted response or error only.

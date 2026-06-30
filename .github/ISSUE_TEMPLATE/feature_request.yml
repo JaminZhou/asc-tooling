@@ -1,0 +1,31 @@
+name: Feature request
+description: Suggest a reusable ASC CLI workflow, docs improvement, or packaging change.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What product-agnostic workflow or repeated task should this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: Describe the command, flags, output, or docs you want.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope and boundaries
+      description: Explain why this belongs in reusable tooling rather than a product repository.
+    validations:
+      required: true
+  - type: textarea
+    id: safety
+    attributes:
+      label: Safety considerations
+      description: For mutating workflows, describe dry-run behavior, explicit confirmations, and credential handling.

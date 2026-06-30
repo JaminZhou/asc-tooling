@@ -13,6 +13,17 @@ export ASC_VENDOR_NUMBER=YOUR_VENDOR_NUMBER
 
 ## Commands
 
+`asc-tooling` is the preferred unified entrypoint:
+
+```bash
+bundle exec asc-tooling commands
+bundle exec asc-tooling review status --bundle-id com.example.app --json
+bundle exec asc-tooling version create --bundle-id com.example.app --version 1.2.0 --platform ios --dry-run
+bundle exec asc-tooling init --client codex --force
+```
+
+The focused executable names below remain supported for existing scripts.
+
 ### Review
 
 ```bash
@@ -31,6 +42,20 @@ no-ops with a status message.
 `WAITING_FOR_REVIEW`, `IN_REVIEW`, and pending manual release states; after the
 withdrawal App Store Connect normally reports the version as
 `DEVELOPER_REJECTED`.
+
+### App Version
+
+```bash
+bundle exec asc-version create \
+  --bundle-id com.example.app \
+  --version 1.2.0 \
+  --platform ios \
+  --dry-run
+```
+
+`asc-version create` creates a new editable App Store version when the product
+workflow needs to prepare metadata before attaching a build or submitting for
+review.
 
 ### Metadata
 
@@ -190,18 +215,20 @@ generation is still out of scope for now.
 ## Release Flow
 
 1. Update the gem version in `lib/asc_tooling/version.rb`.
-2. Create a release branch, open a PR, and merge it to `main` after tests pass.
-3. Create and push a tag from the updated `main` branch:
+2. Update `CHANGELOG.md`.
+3. Create a release branch, open a PR, and merge it to `main` after tests pass.
+4. Create and push a tag from the updated `main` branch:
 
 ```bash
-git tag v0.5.1
-git push origin v0.5.1
+git tag v0.8.6
+git push origin v0.8.6
 ```
 
-4. Create a GitHub release for the tag:
+5. Let the Release workflow build the gem artifact and create the GitHub
+   release. If manual fallback is needed:
 
 ```bash
-gh release create v0.5.1 --generate-notes
+gh release create v0.8.6 --generate-notes
 ```
 
 ## Post-Release SOP
@@ -226,7 +253,7 @@ added later.
 For each repository returned by the scan:
 
 1. Sync `main` and create a release follow-up branch such as
-   `chore/bump-asc-tooling-v0-5-1`.
+   `chore/bump-asc-tooling-v0-8-6`.
 2. Update the `tag:` in `Gemfile` to the newly released version.
 3. Run `bundle update asc_tooling` to refresh `Gemfile.lock`.
 4. Run the repository's normal validation commands.
@@ -238,9 +265,9 @@ Example workflow after choosing one repository from the scan result:
 cd <consumer-repo>
 git switch main
 git pull --ff-only origin main
-git switch -c chore/bump-asc-tooling-v0-5-1
+git switch -c chore/bump-asc-tooling-v0-8-6
 
-# Update Gemfile tag from the previous version to v0.5.1.
+# Update Gemfile tag from the previous version to v0.8.6.
 bundle update asc_tooling
 
 # Run the repo-specific verification here.

@@ -1,0 +1,7 @@
+interface:
+  display_name: "ASC Tooling"
+  short_description: "Use App Store Connect release automation CLIs."
+  default_prompt: "Use $asc-tooling to inspect or run App Store Connect release workflow commands safely."
+
+policy:
+  allow_implicit_invocation: true

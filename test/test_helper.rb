@@ -1,5 +1,7 @@
 require "minitest/autorun"
 require "ostruct"
+require "fileutils"
+require "pathname"
 
 require "asc_tooling"
 
