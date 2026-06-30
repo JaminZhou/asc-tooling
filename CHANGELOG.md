@@ -8,6 +8,13 @@ for product repositories that consume `asc_tooling`.
 
 ## Unreleased
 
+## 0.9.1 - 2026-06-30
+
+### Changed
+
+- Updated GitHub Actions workflow dependencies for checkout, artifact upload,
+  and GitHub release creation.
+
 ## 0.9.0 - 2026-06-30
 
 ### Added
