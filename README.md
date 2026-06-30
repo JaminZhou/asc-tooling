@@ -87,14 +87,15 @@ Install it from the public repository in a product `Gemfile`:
 ```ruby
 gem "asc_tooling",
   git: "https://github.com/JaminZhou/asc-tooling.git",
-  tag: "v0.8.6"
+  tag: "v0.9.0"
 ```
 
-Version `v0.8.6` predates the unified `asc-tooling` CLI. With that tag,
-install and run the legacy executable names through Bundler:
+Then install and run through Bundler:
 
 ```bash
 bundle install
+bundle exec asc-tooling commands
+bundle exec asc-tooling review status --bundle-id com.example.app
 bundle exec asc-review status --bundle-id com.example.app
 bundle exec asc-review release --bundle-id com.example.app --app-version 1.2.0
 bundle exec asc-review withdraw --bundle-id com.example.app --app-version 1.2.0
@@ -113,8 +114,7 @@ bundle install
 `asc-tooling` is the preferred entrypoint for new automation. It delegates to
 the existing command implementations while giving agents and humans one stable
 surface to discover commands and install the bundled skill.
-The commands in this section require a checkout or release that includes the
-Unreleased CLI changes.
+The commands in this section require `v0.9.0` or newer.
 
 ```bash
 bundle exec asc-tooling commands
