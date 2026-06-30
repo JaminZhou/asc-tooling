@@ -124,8 +124,9 @@ bundle exec asc-tooling availability status --bundle-id com.example.app
 Install the bundled skill for Codex-compatible agents or Claude:
 
 ```bash
-bundle exec asc-tooling init --client codex --force
-bundle exec asc-tooling init --client claude --force
+bundle exec asc-tooling init --client codex --force    # $CODEX_HOME/skills, or ~/.codex/skills
+bundle exec asc-tooling init --client agents --force   # ~/.agents/skills
+bundle exec asc-tooling init --client claude --force   # ~/.claude/skills
 bundle exec asc-tooling init --print
 ```
 

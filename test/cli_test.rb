@@ -35,6 +35,22 @@ class CLITest < Minitest::Test
     end
   end
 
+  def test_init_defaults_to_codex_home_skills
+    Dir.mktmpdir do |dir|
+      codex_home = File.join(dir, ".codex")
+
+      with_env("CODEX_HOME" => codex_home) do
+        stdout, stderr = capture_io do
+          assert_equal 0, ASCTooling::CLI.run(["init"])
+        end
+
+        assert_empty stderr
+        assert_includes stdout, "Installed asc-tooling skill"
+        assert File.file?(File.join(codex_home, "skills", "asc-tooling", "SKILL.md"))
+      end
+    end
+  end
+
   def test_init_uninstalls_skill_from_custom_destination
     Dir.mktmpdir do |dir|
       assert_equal 0, ASCTooling::CLI.run(["init", "--dest", dir])

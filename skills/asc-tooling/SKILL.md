@@ -70,6 +70,7 @@ Install or update this skill through the bundled CLI:
 
 ```bash
 asc-tooling init --client codex --force
+asc-tooling init --client agents --force
 asc-tooling init --client claude --force
 asc-tooling init --print
 ```

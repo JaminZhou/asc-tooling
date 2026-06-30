@@ -103,7 +103,9 @@ module ASCTooling
         opts.on("--client CLIENT", ASCTooling::SkillInstaller::CLIENTS, "agents, codex, or claude (default: codex)") do |value|
           options[:client] = value
         end
-        opts.on("--dest PATH", "Custom skills directory. Overrides --client.") { |value| options[:dest] = Pathname.new(value) }
+        opts.on("--dest PATH", "Custom skill parent directory. Overrides --client.") do |value|
+          options[:dest] = Pathname.new(value)
+        end
         opts.on("--force", "Overwrite an existing installed skill") { options[:force] = true }
         opts.on("--uninstall", "Remove the installed skill") { options[:uninstall] = true }
         opts.on("--print", "Print bundled SKILL.md without installing") { options[:print] = true }

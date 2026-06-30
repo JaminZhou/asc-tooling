@@ -30,15 +30,24 @@ module ASCTooling
       bundled_skill_dir.join("SKILL.md").read
     end
 
-    def resolve_client_destinations(client, home: Pathname.new(Dir.home))
+    def resolve_client_destinations(client, home: Pathname.new(Dir.home), env: ENV)
       case client
-      when "agents", "codex"
+      when "agents"
         [home.join(".agents", "skills")]
+      when "codex"
+        [codex_home(env: env, home: home).join("skills")]
       when "claude"
         [home.join(".claude", "skills")]
       else
         raise ArgumentError, "unsupported client: #{client}"
       end
+    end
+
+    def codex_home(env:, home:)
+      value = env["CODEX_HOME"].to_s.strip
+      return Pathname.new(value).expand_path unless value.empty?
+
+      home.join(".codex")
     end
 
     def install_skill(destination, force: false)

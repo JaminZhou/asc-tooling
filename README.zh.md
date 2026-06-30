@@ -95,8 +95,9 @@ bundle exec asc-tooling availability status --bundle-id com.example.app
 安装内置 skill：
 
 ```bash
-bundle exec asc-tooling init --client codex --force
-bundle exec asc-tooling init --client claude --force
+bundle exec asc-tooling init --client codex --force    # $CODEX_HOME/skills，或 ~/.codex/skills
+bundle exec asc-tooling init --client agents --force   # ~/.agents/skills
+bundle exec asc-tooling init --client claude --force   # ~/.claude/skills
 bundle exec asc-tooling init --print
 ```
 

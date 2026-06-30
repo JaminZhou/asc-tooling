@@ -54,13 +54,24 @@ class InstallerTest < Minitest::Test
     end
   end
 
-  def test_resolve_client_destinations_supports_agents_codex_and_claude
+  def test_resolve_client_destinations_supports_agents_codex_fallback_and_claude
     Dir.mktmpdir do |dir|
       home = Pathname.new(dir)
 
       assert_equal [home.join(".agents", "skills")], ASCTooling::SkillInstaller.resolve_client_destinations("agents", home: home)
-      assert_equal [home.join(".agents", "skills")], ASCTooling::SkillInstaller.resolve_client_destinations("codex", home: home)
+      assert_equal [home.join(".codex", "skills")], ASCTooling::SkillInstaller.resolve_client_destinations("codex", home: home, env: {})
       assert_equal [home.join(".claude", "skills")], ASCTooling::SkillInstaller.resolve_client_destinations("claude", home: home)
+    end
+  end
+
+  def test_resolve_client_destinations_honors_codex_home
+    Dir.mktmpdir do |dir|
+      codex_home = Pathname.new(dir).join("custom-codex")
+
+      assert_equal(
+        [codex_home.join("skills")],
+        ASCTooling::SkillInstaller.resolve_client_destinations("codex", env: { "CODEX_HOME" => codex_home.to_s })
+      )
     end
   end
 end
