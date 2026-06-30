@@ -33,7 +33,7 @@ gem build asc_tooling.gemspec
 When `skills/` changes, also run the skill validator if available:
 
 ```bash
-python3 /path/to/skill-creator/scripts/quick_validate.py skills/asc-tooling
+ruby .github/scripts/validate_skill.rb
 ```
 
 If local Bundler selects an old incompatible version, use the current Bundler explicitly, for example:
@@ -47,5 +47,7 @@ ruby -S bundle _4.0.11_ exec rubocop
 ## Release Notes
 
 - Version bumps live in `lib/asc_tooling/version.rb`.
+- User-visible changes should be recorded in `CHANGELOG.md`.
 - Tags use `vX.Y.Z`.
+- The release workflow builds a gem artifact and creates a GitHub release for `vX.Y.Z` tags.
 - GitHub releases should summarize command-surface changes and any consumer migration notes.

@@ -3,7 +3,8 @@
 [![CI](https://github.com/JaminZhou/asc-tooling/actions/workflows/ci.yml/badge.svg)](https://github.com/JaminZhou/asc-tooling/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/JaminZhou/asc-tooling?sort=semver)](https://github.com/JaminZhou/asc-tooling/releases)
 [![Ruby](https://img.shields.io/badge/ruby-3.1--3.3-red.svg)](.github/workflows/ci.yml)
-[![Status](https://img.shields.io/badge/status-production%20local%20tooling-2563eb.svg)](docs/release-and-usage.md)
+[![Status](https://img.shields.io/badge/status-production%20local%20tooling-2563eb.svg)](CHANGELOG.md)
+[![Agent Skill](https://img.shields.io/badge/Agent%20skill-Codex%20%2F%20Claude-111827.svg)](skills/asc-tooling/SKILL.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 Language: English | [中文](README.zh.md)
@@ -204,3 +205,4 @@ workflow:
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the current contribution workflow.
+Release history is tracked in [CHANGELOG.md](CHANGELOG.md).

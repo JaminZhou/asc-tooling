@@ -24,6 +24,7 @@ Gem::Specification.new do |spec|
       "Gemfile",
       "README*",
       "LICENSE*",
+      "CHANGELOG.md",
       "CONTRIBUTING.md",
       "SECURITY.md",
       "CODE_OF_CONDUCT.md",
@@ -50,5 +51,8 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "minitest", ">= 5.0"
   spec.add_development_dependency "ostruct", ">= 0"
   spec.add_development_dependency "rubocop", ">= 1.0"
+  spec.metadata["bug_tracker_uri"] = "https://github.com/JaminZhou/asc-tooling/issues"
+  spec.metadata["changelog_uri"] = "https://github.com/JaminZhou/asc-tooling/blob/main/CHANGELOG.md"
   spec.metadata["rubygems_mfa_required"] = "true"
+  spec.metadata["source_code_uri"] = "https://github.com/JaminZhou/asc-tooling"
 end

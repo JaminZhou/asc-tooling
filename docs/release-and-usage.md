@@ -215,15 +215,17 @@ generation is still out of scope for now.
 ## Release Flow
 
 1. Update the gem version in `lib/asc_tooling/version.rb`.
-2. Create a release branch, open a PR, and merge it to `main` after tests pass.
-3. Create and push a tag from the updated `main` branch:
+2. Update `CHANGELOG.md`.
+3. Create a release branch, open a PR, and merge it to `main` after tests pass.
+4. Create and push a tag from the updated `main` branch:
 
 ```bash
 git tag v0.8.6
 git push origin v0.8.6
 ```
 
-4. Create a GitHub release for the tag:
+5. Let the Release workflow build the gem artifact and create the GitHub
+   release. If manual fallback is needed:
 
 ```bash
 gh release create v0.8.6 --generate-notes

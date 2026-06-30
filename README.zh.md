@@ -3,7 +3,8 @@
 [![CI](https://github.com/JaminZhou/asc-tooling/actions/workflows/ci.yml/badge.svg)](https://github.com/JaminZhou/asc-tooling/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/JaminZhou/asc-tooling?sort=semver)](https://github.com/JaminZhou/asc-tooling/releases)
 [![Ruby](https://img.shields.io/badge/ruby-3.1--3.3-red.svg)](.github/workflows/ci.yml)
-[![Status](https://img.shields.io/badge/status-production%20local%20tooling-2563eb.svg)](docs/release-and-usage.md)
+[![Status](https://img.shields.io/badge/status-production%20local%20tooling-2563eb.svg)](CHANGELOG.md)
+[![Agent Skill](https://img.shields.io/badge/Agent%20skill-Codex%20%2F%20Claude-111827.svg)](skills/asc-tooling/SKILL.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 语言：[English](README.md) | 中文
@@ -136,3 +137,4 @@ bundle exec asc-tooling init --print
 ## 贡献
 
 贡献流程见 [CONTRIBUTING.md](CONTRIBUTING.md)。安全问题请按 [SECURITY.md](SECURITY.md) 处理，不要在公开 issue 中粘贴凭证、Cookie、`.p8` 密钥或产品敏感信息。
+发布历史见 [CHANGELOG.md](CHANGELOG.md)。

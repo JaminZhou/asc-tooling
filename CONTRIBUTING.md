@@ -51,7 +51,7 @@ bundle exec rubocop
 5. Validate the bundled skill when skill files or package metadata change:
 
 ```bash
-python3 /path/to/skill-creator/scripts/quick_validate.py skills/asc-tooling
+ruby .github/scripts/validate_skill.rb
 ```
 
 ## Pull requests

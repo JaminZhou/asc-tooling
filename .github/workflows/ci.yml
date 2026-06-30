@@ -20,7 +20,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
@@ -29,14 +29,14 @@ jobs:
           bundler-cache: true
 
       - name: Run tests
-        run: bundle exec ruby -Itest -e 'Dir["test/*_test.rb"].each { |f| load f }'
+        run: bundle exec ruby -Itest -e 'Dir["test/*_test.rb"].sort.each { |f| load f }'
 
   lint:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
@@ -46,3 +46,9 @@ jobs:
 
       - name: Run RuboCop
         run: bundle exec rubocop
+
+      - name: Validate skill
+        run: ruby .github/scripts/validate_skill.rb
+
+      - name: Build gem
+        run: gem build asc_tooling.gemspec
