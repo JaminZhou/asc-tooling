@@ -130,6 +130,10 @@ bundle exec asc-tooling init --client claude --force   # ~/.claude/skills
 bundle exec asc-tooling init --print
 ```
 
+Use `--client codex` for Codex-native installs that follow Codex's own
+`CODEX_HOME` convention. Use `--client agents` for the open Agent Skills user
+folder shared by compatible agents.
+
 The legacy executable names remain supported for existing scripts:
 
 ```bash

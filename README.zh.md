@@ -101,6 +101,9 @@ bundle exec asc-tooling init --client claude --force   # ~/.claude/skills
 bundle exec asc-tooling init --print
 ```
 
+`--client codex` 使用 Codex 自身的 `CODEX_HOME` 约定；`--client agents`
+使用兼容 Agent Skills 的开放用户目录。
+
 旧的可执行命令仍然保留，方便现有脚本继续使用：
 
 ```bash

@@ -74,3 +74,7 @@ asc-tooling init --client agents --force
 asc-tooling init --client claude --force
 asc-tooling init --print
 ```
+
+`--client codex` installs under `$CODEX_HOME/skills` or `~/.codex/skills`.
+`--client agents` installs under the open Agent Skills user folder,
+`~/.agents/skills`.
