@@ -33,7 +33,7 @@ jobs:
         run: gem build asc_tooling.gemspec
 
       - name: Upload gem artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: gem
           path: asc_tooling-*.gem
