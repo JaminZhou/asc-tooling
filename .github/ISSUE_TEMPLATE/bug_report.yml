@@ -1,0 +1,60 @@
+name: Bug report
+description: Report a CLI, API, install, or documentation issue.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a problem. Do not paste `.p8` keys, cookies, tokens, unpublished product metadata, or account data.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What happened?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      description: Include the command, flags, and sanitized output.
+      placeholder: |
+        1. Run `bundle exec asc-...`
+        2. See ...
+        3. Expected ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Sanitized output is okay.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: asc_tooling version or tag
+      placeholder: "v0.8.6, main, local checkout"
+  - type: input
+    id: ruby
+    attributes:
+      label: Ruby version
+      placeholder: "ruby -v"
+  - type: input
+    id: command
+    attributes:
+      label: Command
+      placeholder: "bundle exec asc-review status --bundle-id com.example.app"
+  - type: textarea
+    id: extra
+    attributes:
+      label: Additional context
+      description: Sanitized only.

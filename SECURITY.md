@@ -1,7 +1,8 @@
 # Security Policy
 
 If you believe you have found a security issue in `asc_tooling`, please report
-it privately by email to `me@jaminzhou.com`.
+it through GitHub private security advisories when available, or privately by
+email to `me@jaminzhou.com`.
 
 Please do not open a public GitHub issue for:
 
