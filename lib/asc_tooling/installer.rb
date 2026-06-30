@@ -60,6 +60,7 @@ module ASCTooling
     def install_skill(destination, force: false)
       source = bundled_skill_dir
       target = Pathname.new(destination).expand_path.join(SKILL_NAME)
+      assert_not_bundled_skill_target!(target)
       FileUtils.mkdir_p(target.dirname)
 
       if target.exist?
@@ -74,8 +75,17 @@ module ASCTooling
 
     def uninstall_skill(destination)
       target = Pathname.new(destination).expand_path.join(SKILL_NAME)
+      assert_not_bundled_skill_target!(target)
       FileUtils.rm_rf(target) if target.exist?
       target
+    end
+
+    def assert_not_bundled_skill_target!(target)
+      source = bundled_skill_dir
+      resolved_target = target.exist? ? target.realpath : target.expand_path
+      return unless resolved_target == source.realpath
+
+      raise ArgumentError, "Refusing to modify bundled #{SKILL_NAME} skill at #{source}. Choose a different --dest."
     end
 
     def install_to_targets(destinations, force: false)

@@ -64,11 +64,11 @@ gem "asc_tooling",
   tag: "v0.8.6"
 ```
 
-然后通过 Bundler 使用：
+`v0.8.6` 早于统一 `asc-tooling` CLI。使用这个 tag 时，通过 Bundler
+运行旧的可执行命令：
 
 ```bash
 bundle install
-bundle exec asc-tooling commands
 bundle exec asc-review status --bundle-id com.example.app
 bundle exec asc-review release --bundle-id com.example.app --app-version 1.2.0
 ```
@@ -84,6 +84,7 @@ bundle install
 ## 统一 CLI 与 Skill
 
 新自动化优先使用 `asc-tooling` 入口。它会委派到现有命令实现，同时给人和 agent 一个稳定的命令发现、执行和 skill 安装入口。
+本节命令需要使用包含 Unreleased CLI 改动的 checkout 或未来 release。
 
 ```bash
 bundle exec asc-tooling commands

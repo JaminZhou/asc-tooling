@@ -54,6 +54,24 @@ class InstallerTest < Minitest::Test
     end
   end
 
+  def test_install_skill_refuses_to_overwrite_bundled_skill
+    bundled_skill = ASCTooling::SkillInstaller.bundled_skill_dir
+
+    assert_raises(ArgumentError) do
+      ASCTooling::SkillInstaller.install_skill(bundled_skill.dirname, force: true)
+    end
+    assert File.file?(bundled_skill.join("SKILL.md"))
+  end
+
+  def test_uninstall_skill_refuses_to_remove_bundled_skill
+    bundled_skill = ASCTooling::SkillInstaller.bundled_skill_dir
+
+    assert_raises(ArgumentError) do
+      ASCTooling::SkillInstaller.uninstall_skill(bundled_skill.dirname)
+    end
+    assert File.file?(bundled_skill.join("SKILL.md"))
+  end
+
   def test_resolve_client_destinations_supports_agents_codex_fallback_and_claude
     Dir.mktmpdir do |dir|
       home = Pathname.new(dir)
