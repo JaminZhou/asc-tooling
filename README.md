@@ -126,13 +126,14 @@ Install the bundled skill for Codex-compatible agents or Claude:
 ```bash
 bundle exec asc-tooling init --client codex --force    # $CODEX_HOME/skills, or ~/.codex/skills
 bundle exec asc-tooling init --client agents --force   # ~/.agents/skills
-bundle exec asc-tooling init --client claude --force   # ~/.claude/skills
+bundle exec asc-tooling init --client claude --force   # $CLAUDE_CONFIG_DIR/skills, or ~/.claude/skills
 bundle exec asc-tooling init --print
 ```
 
 Use `--client codex` for Codex-native installs that follow Codex's own
 `CODEX_HOME` convention. Use `--client agents` for the open Agent Skills user
-folder shared by compatible agents.
+folder shared by compatible agents. Use `--client claude` for Claude Code
+installs that follow `CLAUDE_CONFIG_DIR` when it is set.
 
 The legacy executable names remain supported for existing scripts:
 

@@ -37,7 +37,7 @@ module ASCTooling
       when "codex"
         [codex_home(env: env, home: home).join("skills")]
       when "claude"
-        [home.join(".claude", "skills")]
+        [claude_home(env: env, home: home).join("skills")]
       else
         raise ArgumentError, "unsupported client: #{client}"
       end
@@ -48,6 +48,13 @@ module ASCTooling
       return Pathname.new(value).expand_path unless value.empty?
 
       home.join(".codex")
+    end
+
+    def claude_home(env:, home:)
+      value = env["CLAUDE_CONFIG_DIR"].to_s.strip
+      return Pathname.new(value).expand_path unless value.empty?
+
+      home.join(".claude")
     end
 
     def install_skill(destination, force: false)

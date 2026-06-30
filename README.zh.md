@@ -97,12 +97,13 @@ bundle exec asc-tooling availability status --bundle-id com.example.app
 ```bash
 bundle exec asc-tooling init --client codex --force    # $CODEX_HOME/skills，或 ~/.codex/skills
 bundle exec asc-tooling init --client agents --force   # ~/.agents/skills
-bundle exec asc-tooling init --client claude --force   # ~/.claude/skills
+bundle exec asc-tooling init --client claude --force   # $CLAUDE_CONFIG_DIR/skills，或 ~/.claude/skills
 bundle exec asc-tooling init --print
 ```
 
 `--client codex` 使用 Codex 自身的 `CODEX_HOME` 约定；`--client agents`
-使用兼容 Agent Skills 的开放用户目录。
+使用兼容 Agent Skills 的开放用户目录；`--client claude` 使用 Claude Code
+的 `CLAUDE_CONFIG_DIR` 约定，未设置时回落到 `~/.claude`。
 
 旧的可执行命令仍然保留，方便现有脚本继续使用：
 

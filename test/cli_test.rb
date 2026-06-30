@@ -51,6 +51,22 @@ class CLITest < Minitest::Test
     end
   end
 
+  def test_init_with_claude_client_honors_claude_config_dir
+    Dir.mktmpdir do |dir|
+      claude_home = File.join(dir, ".claude")
+
+      with_env("CLAUDE_CONFIG_DIR" => claude_home) do
+        stdout, stderr = capture_io do
+          assert_equal 0, ASCTooling::CLI.run(["init", "--client", "claude"])
+        end
+
+        assert_empty stderr
+        assert_includes stdout, "Installed asc-tooling skill"
+        assert File.file?(File.join(claude_home, "skills", "asc-tooling", "SKILL.md"))
+      end
+    end
+  end
+
   def test_init_uninstalls_skill_from_custom_destination
     Dir.mktmpdir do |dir|
       assert_equal 0, ASCTooling::CLI.run(["init", "--dest", dir])

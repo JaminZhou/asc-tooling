@@ -74,4 +74,15 @@ class InstallerTest < Minitest::Test
       )
     end
   end
+
+  def test_resolve_client_destinations_honors_claude_config_dir
+    Dir.mktmpdir do |dir|
+      claude_home = Pathname.new(dir).join("custom-claude")
+
+      assert_equal(
+        [claude_home.join("skills")],
+        ASCTooling::SkillInstaller.resolve_client_destinations("claude", env: { "CLAUDE_CONFIG_DIR" => claude_home.to_s })
+      )
+    end
+  end
 end
