@@ -223,6 +223,30 @@ class ASCToolingAvailabilityTest < Minitest::Test
     assert_equal %w[JPN USA], territory_ids
   end
 
+  def test_status_refetches_availability_after_apply_creates_it
+    app = OpenStruct.new(
+      id: "app-1",
+      name: "Test",
+      bundle_id: "com.test",
+      raw: { "attributes" => {} }
+    )
+    client = FakeClient.new(
+      app: app,
+      territory_ids: %w[JPN USA],
+      available_territory_ids: [],
+      availability_present: false
+    )
+    availability = build_availability(client, available_in_new_territories: true, all_territories: true)
+
+    availability.send(:apply_availability)
+    summary = availability.send(:status_summary)
+
+    assert_equal true, summary[:ok]
+    assert_equal "ready", summary[:status]
+    assert_equal "availability-1", summary.dig(:availability, :id)
+    assert_equal 2, summary.dig(:availability, :available_territory_count)
+  end
+
   def test_apply_noops_when_available_in_new_territories_matches
     app = OpenStruct.new(id: "app-1", name: "Test", bundle_id: "com.test")
     client = FakeClient.new(

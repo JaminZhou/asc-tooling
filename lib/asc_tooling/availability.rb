@@ -146,7 +146,7 @@ module ASCTooling
       raise ArgumentError, "updating existing app availability territory gaps is not implemented yet" if availability
 
       created = create_app_availability!(target, desired_territories)
-      @availability = nil
+      remove_instance_variable(:@availability) if instance_variable_defined?(:@availability)
       result[:created_availability_id] = created.fetch("id")
       result[:message] = "Created app availability #{created.fetch('id')} for #{desired_territories.size} territories."
       result
