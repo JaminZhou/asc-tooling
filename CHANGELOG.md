@@ -8,6 +8,13 @@ for product repositories that consume `asc_tooling`.
 
 ## Unreleased
 
+## 0.9.3 - 2026-07-01
+
+### Fixed
+
+- Updated public installation examples and issue template placeholders to point
+  at the current `v0.9.3` release tag.
+
 ## 0.9.2 - 2026-07-01
 
 ### Fixed
