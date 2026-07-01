@@ -8,6 +8,8 @@ for product repositories that consume `asc_tooling`.
 
 ## Unreleased
 
+## 0.9.2 - 2026-07-01
+
 ### Fixed
 
 - Fixed `asc-availability apply` cache invalidation so a reused process can
