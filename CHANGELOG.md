@@ -8,6 +8,11 @@ for product repositories that consume `asc_tooling`.
 
 ## Unreleased
 
+### Fixed
+
+- Fixed `asc-availability apply` cache invalidation so a reused process can
+  re-fetch newly created app availability before reporting status.
+
 ## 0.9.1 - 2026-06-30
 
 ### Changed
