@@ -8,6 +8,13 @@ for product repositories that consume `asc_tooling`.
 
 ## Unreleased
 
+### Added
+
+- Added an App Store Connect API gap matrix to track future probe candidates
+  without expanding the supported CLI surface preemptively.
+- Added `asc-tooling --version` and bare `asc-tooling version` output for
+  machine-level CLI version checks.
+
 ## 0.9.3 - 2026-07-01
 
 ### Fixed

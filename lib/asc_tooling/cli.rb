@@ -31,6 +31,16 @@ module ASCTooling
       when nil, "-h", "--help", "help"
         print_help
         0
+      when "-v", "--version"
+        print_version
+        0
+      when "version"
+        if @argv.empty?
+          print_version
+          0
+        else
+          dispatch(command, @argv)
+        end
       when "commands"
         print_commands
         0
@@ -74,11 +84,17 @@ module ASCTooling
           store-setup    Delegate to asc-store-setup
 
         Examples:
+          asc-tooling --version
           asc-tooling init --client codex
           asc-tooling init --client claude
           asc-tooling review status --bundle-id com.example.app
+          asc-tooling version create --bundle-id com.example.app --version 1.2.0 --platform ios --dry-run
           asc-tooling commands
       HELP
+    end
+
+    def print_version
+      puts ASCTooling::VERSION
     end
 
     def print_commands

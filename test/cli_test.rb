@@ -14,6 +14,24 @@ class CLITest < Minitest::Test
     assert_includes stdout, "store-setup"
   end
 
+  def test_version_option_prints_current_version
+    stdout, stderr = capture_io do
+      assert_equal 0, ASCTooling::CLI.run(["--version"])
+    end
+
+    assert_empty stderr
+    assert_equal "#{ASCTooling::VERSION}\n", stdout
+  end
+
+  def test_version_command_prints_current_version
+    stdout, stderr = capture_io do
+      assert_equal 0, ASCTooling::CLI.run(["version"])
+    end
+
+    assert_empty stderr
+    assert_equal "#{ASCTooling::VERSION}\n", stdout
+  end
+
   def test_init_print_outputs_skill
     stdout, stderr = capture_io do
       assert_equal 0, ASCTooling::CLI.run(["init", "--print"])
