@@ -17,6 +17,7 @@ export ASC_VENDOR_NUMBER=YOUR_VENDOR_NUMBER
 
 ```bash
 bundle exec asc-tooling commands
+bundle exec asc-tooling --version
 bundle exec asc-tooling review status --bundle-id com.example.app --json
 bundle exec asc-tooling version create --bundle-id com.example.app --version 1.2.0 --platform ios --dry-run
 bundle exec asc-tooling init --client codex --force
@@ -299,3 +300,8 @@ Before considering the release fully rolled out, confirm that:
 
 Product-specific screenshot rendering, copy generation, and UI state setup
 should remain in each app repository.
+
+Potential future App Store Connect API coverage is tracked in
+[api-gap-matrix.md](api-gap-matrix.md). New areas should be promoted only when
+they solve repeatable product release blockers and preserve the explicit,
+status-first, dry-run-friendly safety model.

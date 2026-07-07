@@ -65,6 +65,10 @@ Current implementation status:
 Product-specific assets such as screenshot renderers should stay in each app
 repository.
 
+Potential future API areas are tracked in
+[docs/api-gap-matrix.md](docs/api-gap-matrix.md). That matrix is a discovery
+backlog, not a commitment to wrap the full App Store Connect API.
+
 ## Requirements
 
 Set these environment variables before running any command:
@@ -118,6 +122,7 @@ The commands in this section require `v0.9.0` or newer.
 
 ```bash
 bundle exec asc-tooling commands
+bundle exec asc-tooling --version
 bundle exec asc-tooling review status --bundle-id com.example.app
 bundle exec asc-tooling version create --bundle-id com.example.app --version 1.2.0 --platform ios --dry-run
 bundle exec asc-tooling availability status --bundle-id com.example.app

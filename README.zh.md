@@ -40,6 +40,9 @@
 
 产品专属资产，例如截图渲染器、发布说明模板和 app-specific release state，应该留在具体产品仓库中。
 
+潜在的后续 API 覆盖面记录在
+[docs/api-gap-matrix.md](docs/api-gap-matrix.md)。它是探测 backlog，不代表本项目要封装完整 App Store Connect API。
+
 ## 环境变量
 
 所有命令都需要：
@@ -89,6 +92,7 @@ bundle install
 
 ```bash
 bundle exec asc-tooling commands
+bundle exec asc-tooling --version
 bundle exec asc-tooling review status --bundle-id com.example.app
 bundle exec asc-tooling version create --bundle-id com.example.app --version 1.2.0 --platform ios --dry-run
 bundle exec asc-tooling availability status --bundle-id com.example.app
