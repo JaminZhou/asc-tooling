@@ -106,6 +106,23 @@ class ASCToolingMetadataTest < Minitest::Test
     assert_equal "READY_FOR_SALE", summary["version_state"]
   end
 
+  def test_status_uses_selected_submitted_state_for_app_info
+    app = OpenStruct.new(id: "app-1", name: "Test", bundle_id: "com.test")
+    version = OpenStruct.new(
+      id: "v-1",
+      version_string: "1.10.0",
+      app_store_state: "PENDING_DEVELOPER_RELEASE",
+      copyright: "2026 Test"
+    )
+    client = FakeClient.new(app: app, version: version)
+    metadata = build_metadata(client, app_version: "1.10.0")
+
+    capture_io { metadata.send(:print_status) }
+
+    assert_equal [["PENDING_DEVELOPER_RELEASE"]], client.app_info_state_calls
+    assert_empty client.editable_version_calls
+  end
+
   def test_apply_updates_version_direct_attributes
     app = OpenStruct.new(id: "app-1", name: "Test", bundle_id: "com.test")
     version = OpenStruct.new(id: "v-1", version_string: "1.0")

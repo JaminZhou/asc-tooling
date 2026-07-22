@@ -18,8 +18,8 @@ for product repositories that consume `asc_tooling`.
 ### Fixed
 
 - Allowed metadata and screenshot status commands to read released App Store
-  versions while keeping metadata apply and screenshot upload restricted to
-  editable versions.
+  versions, with matching-state app info for metadata reads, while keeping
+  metadata apply and screenshot upload restricted to editable versions.
 
 ## 0.9.3 - 2026-07-01
 
