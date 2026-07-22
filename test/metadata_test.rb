@@ -3,7 +3,8 @@ require "tmpdir"
 
 class ASCToolingMetadataTest < Minitest::Test
   class FakeClient
-    attr_reader :requests, :update_calls, :read_version_calls, :editable_version_calls
+    attr_reader :requests, :update_calls, :read_version_calls, :editable_version_calls,
+                :app_info_state_calls
 
     def initialize(app:, version:, localization: nil, app_info_localization: nil)
       @app = app
@@ -14,6 +15,7 @@ class ASCToolingMetadataTest < Minitest::Test
       @update_calls = []
       @read_version_calls = []
       @editable_version_calls = []
+      @app_info_state_calls = []
     end
 
     def platform(_value) = "MAC_OS"
@@ -32,7 +34,8 @@ class ASCToolingMetadataTest < Minitest::Test
     def find_version_localization(_version, _locale) = @localization
     def find_or_create_version_localization!(_version, _locale) = @localization
 
-    def find_app_info_localization(_app, _locale)
+    def find_app_info_localization(_app, _locale, states: nil)
+      @app_info_state_calls << states
       [OpenStruct.new(id: "info-1"), @app_info_localization]
     end
 
@@ -96,6 +99,7 @@ class ASCToolingMetadataTest < Minitest::Test
     assert_includes output, "State: READY_FOR_SALE"
     assert_equal [{ platform: "MAC_OS", app_version: "1.10.0" }], client.read_version_calls
     assert_empty client.editable_version_calls
+    assert_equal [["READY_FOR_SALE"]], client.app_info_state_calls
 
     metadata.instance_variable_get(:@options)[:json] = true
     summary = JSON.parse(capture_io { metadata.send(:print_status) }.first)

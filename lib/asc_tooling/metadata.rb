@@ -99,7 +99,12 @@ module ASCTooling
     def print_status
       app = @asc.find_app!(@options[:bundle_id])
       version = @asc.find_version!(app, platform: platform, app_version: @options[:app_version])
-      _, app_info_localization = @asc.find_app_info_localization(app, @options[:locale])
+      app_info_states = [version.app_store_state] if ASCTooling::Client::LIVE_APP_INFO_STATES.include?(version.app_store_state)
+      _, app_info_localization = @asc.find_app_info_localization(
+        app,
+        @options[:locale],
+        states: app_info_states
+      )
       version_localization = @asc.find_version_localization(version, @options[:locale])
 
       summary = {
