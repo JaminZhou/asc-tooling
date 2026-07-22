@@ -115,6 +115,107 @@ class ASCToolingClientTest < Minitest::Test
     assert_equal "Rouse: Stay Awake", payload.dig(:body, :data, :attributes, :name)
   end
 
+  def test_find_version_uses_server_side_version_filter
+    client = ASCTooling::Client.allocate
+    app = OpenStruct.new(id: "app-123")
+    captured = nil
+    client.define_singleton_method(:request_json) do |method, path, params: nil, body: nil|
+      captured = { method: method, path: path, params: params, body: body }
+      {
+        "data" => [
+          {
+            "id" => "version-123",
+            "attributes" => {
+              "versionString" => "1.10.0",
+              "appStoreState" => "READY_FOR_SALE"
+            }
+          }
+        ]
+      }
+    end
+
+    version = client.find_version!(app, platform: "MAC_OS", app_version: "1.10.0")
+
+    assert_equal "1.10.0", version.version_string
+    assert_equal "GET", captured[:method]
+    assert_equal "/v1/apps/app-123/appStoreVersions", captured[:path]
+    assert_equal "MAC_OS", captured[:params]["filter[platform]"]
+    assert_equal "1.10.0", captured[:params]["filter[versionString]"]
+    assert_equal "1", captured[:params]["limit"]
+  end
+
+  def test_find_app_info_localization_selects_matching_live_state
+    client = ASCTooling::Client.allocate
+    app = OpenStruct.new(id: "app-123")
+    requested_paths = []
+    client.define_singleton_method(:request_json) do |_method, path, params: nil, body: nil|
+      requested_paths << path
+      if path == "/v1/apps/app-123/appInfos"
+        {
+          "data" => [
+            {
+              "id" => "draft-info",
+              "attributes" => { "appStoreState" => "PREPARE_FOR_SUBMISSION" }
+            },
+            {
+              "id" => "live-info",
+              "attributes" => { "appStoreState" => "READY_FOR_SALE" }
+            }
+          ]
+        }
+      else
+        {
+          "data" => [
+            {
+              "id" => "live-localization",
+              "attributes" => { "locale" => "en-US", "name" => "Live Name" }
+            }
+          ]
+        }
+      end
+    end
+
+    app_info, localization = client.find_app_info_localization(
+      app,
+      "en-US",
+      states: ["READY_FOR_SALE"]
+    )
+
+    assert_equal "live-info", app_info.id
+    assert_equal "Live Name", localization.name
+    assert_equal(
+      ["/v1/apps/app-123/appInfos", "/v1/appInfos/live-info/appInfoLocalizations"],
+      requested_paths
+    )
+  end
+
+  def test_find_app_info_localization_does_not_fall_back_to_draft_for_live_state
+    client = ASCTooling::Client.allocate
+    app = OpenStruct.new(id: "app-123")
+    request_count = 0
+    client.define_singleton_method(:request_json) do |_method, _path, params: nil, body: nil|
+      request_count += 1
+      {
+        "data" => [
+          {
+            "id" => "draft-info",
+            "attributes" => { "appStoreState" => "PREPARE_FOR_SUBMISSION" }
+          }
+        ]
+      }
+    end
+
+    app_info, localization = client.find_app_info_localization(
+      app,
+      "en-US",
+      states: ["READY_FOR_SALE"]
+    )
+
+    assert_nil app_info
+    assert_nil localization
+    assert_equal 1, request_count
+  end
+
   def test_auth_options_from_uses_supported_env_names
     with_env(
       "ASC_KEY_ID" => nil,

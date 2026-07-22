@@ -61,12 +61,18 @@ review.
 ### Metadata
 
 ```bash
-bundle exec asc-metadata status --bundle-id com.example.app --locale en-US
+bundle exec asc-metadata status \
+  --bundle-id com.example.app \
+  --app-version 1.2.0 \
+  --locale en-US
 bundle exec asc-metadata apply \
   --bundle-id com.example.app \
   --locale en-US \
   --subtitle "Calm wake control for Mac"
 ```
+
+`status` can read either an editable or released version and reports its App
+Store state. `apply` remains restricted to editable versions.
 
 ### Store Setup
 
@@ -128,6 +134,7 @@ the product should not auto-enable new territories.
 ```bash
 bundle exec asc-screenshots status \
   --bundle-id com.example.app \
+  --app-version 1.2.0 \
   --locale en-US \
   --display-type APP_DESKTOP
 
@@ -137,6 +144,10 @@ bundle exec asc-screenshots upload \
   --display-type APP_DESKTOP \
   --source-dir build/app-store-screenshots
 ```
+
+`status` can inspect screenshot sets on editable or released versions and
+reports the selected version state. `upload` remains restricted to editable
+versions.
 
 ### In-App Purchases
 

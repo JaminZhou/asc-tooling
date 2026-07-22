@@ -125,10 +125,14 @@ module ASCTooling
         "filter[platform]" => platform
       }
       filter["filter[appStoreState]"] = Array(states).join(",") if states && !states.empty?
+      filter["filter[versionString]"] = app_version if app_version
       data = request_json(
         "GET",
         "/v1/apps/#{app.id}/appStoreVersions",
-        params: filter.merge("include" => "build", "limit" => DEFAULT_PAGE_LIMIT.to_s)
+        params: filter.merge(
+          "include" => "build",
+          "limit" => app_version ? "1" : DEFAULT_PAGE_LIMIT.to_s
+        )
       )
       versions = data.fetch("data", [])
       versions.select! { |item| item.dig("attributes", "versionString") == app_version } if app_version
@@ -157,12 +161,7 @@ module ASCTooling
     LIVE_APP_INFO_STATES = %w[READY_FOR_SALE REMOVED_FROM_SALE].freeze
 
     def fetch_edit_app_info!(app)
-      data = request_json(
-        "GET",
-        "/v1/apps/#{app.id}/appInfos",
-        params: { "limit" => DEFAULT_PAGE_LIMIT.to_s }
-      )
-      records = data.fetch("data", [])
+      records = app_info_records(app)
       app_info = records.find { |r| !LIVE_APP_INFO_STATES.include?(r.dig("attributes", "appStoreState")) }
       app_info ||= records.first
       raise ArgumentError, "editable app info not found" unless app_info
@@ -170,8 +169,17 @@ module ASCTooling
       APIResource.new(app_info)
     end
 
-    def find_app_info_localization(app, locale)
-      app_info = fetch_edit_app_info!(app)
+    def find_app_info_localization(app, locale, states: nil)
+      app_info = if states && !states.empty?
+                   record = app_info_records(app).find do |item|
+                     Array(states).include?(item.dig("attributes", "appStoreState"))
+                   end
+                   APIResource.new(record) if record
+                 else
+                   fetch_edit_app_info!(app)
+                 end
+      return [nil, nil] unless app_info
+
       data = request_json(
         "GET",
         "/v1/appInfos/#{app_info.id}/appInfoLocalizations",
@@ -416,6 +424,14 @@ module ASCTooling
     end
 
     private
+
+    def app_info_records(app)
+      request_json(
+        "GET",
+        "/v1/apps/#{app.id}/appInfos",
+        params: { "limit" => DEFAULT_PAGE_LIMIT.to_s }
+      ).fetch("data", [])
+    end
 
     def create_version_localization(version, locale)
       data = request_json(

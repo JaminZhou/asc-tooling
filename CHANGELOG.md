@@ -15,6 +15,12 @@ for product repositories that consume `asc_tooling`.
 - Added `asc-tooling --version` and bare `asc-tooling version` output for
   machine-level CLI version checks.
 
+### Fixed
+
+- Allowed metadata and screenshot status commands to read released App Store
+  versions, with matching-state app info for metadata reads, while keeping
+  metadata apply and screenshot upload restricted to editable versions.
+
 ## 0.9.3 - 2026-07-01
 
 ### Fixed

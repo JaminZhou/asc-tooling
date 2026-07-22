@@ -22,15 +22,19 @@ Prefer the unified CLI when available:
 ```bash
 asc-tooling commands
 asc-tooling review status --bundle-id com.example.app
-asc-tooling metadata status --bundle-id com.example.app --locale en-US
+asc-tooling metadata status --bundle-id com.example.app --app-version 1.2.0 --locale en-US
 asc-tooling beta status --bundle-id com.example.app
 asc-tooling sales units --bundle-id com.example.app --vendor-number 12345678 --report-date 2026-04-10
-asc-tooling screenshots status --bundle-id com.example.app --locale en-US --display-type APP_DESKTOP
+asc-tooling screenshots status --bundle-id com.example.app --app-version 1.2.0 --locale en-US --display-type APP_DESKTOP
 asc-tooling iap status --bundle-id com.example.app
 asc-tooling version create --bundle-id com.example.app --version 1.2.0 --platform ios --dry-run
 asc-tooling availability status --bundle-id com.example.app
 asc-tooling store-setup status --bundle-id com.example.app --app-version 1.0.0 --platform ios
 ```
+
+Metadata and screenshot status commands may read an explicitly selected
+editable or released App Store version. Metadata apply and screenshot upload
+must continue to target editable versions only.
 
 The legacy executable names remain supported:
 
