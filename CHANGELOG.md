@@ -8,6 +8,8 @@ for product repositories that consume `asc_tooling`.
 
 ## Unreleased
 
+## 0.10.0 - 2026-07-22
+
 ### Added
 
 - Added an App Store Connect API gap matrix to track future probe candidates
