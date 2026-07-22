@@ -64,7 +64,7 @@
 ```ruby
 gem "asc_tooling",
   git: "https://github.com/JaminZhou/asc-tooling.git",
-  tag: "v0.9.3"
+  tag: "v0.10.0"
 ```
 
 然后通过 Bundler 使用：

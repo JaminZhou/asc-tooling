@@ -42,7 +42,7 @@ body:
     id: version
     attributes:
       label: asc_tooling version or tag
-      placeholder: "v0.9.3, main, local checkout"
+      placeholder: "v0.10.0, main, local checkout"
   - type: input
     id: ruby
     attributes:
