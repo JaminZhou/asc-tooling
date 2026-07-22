@@ -34,7 +34,7 @@ module ASCTooling
         opts.banner = "Usage: asc-metadata <status|apply> --bundle-id com.example.app [options]"
 
         opts.on("--bundle-id BUNDLE_ID", "App bundle identifier") { |value| options[:bundle_id] = value }
-        opts.on("--app-version VERSION", "Editable App Store version to target") { |value| options[:app_version] = value }
+        opts.on("--app-version VERSION", "App Store version to target; writes require an editable version") { |value| options[:app_version] = value }
         opts.on("--locale LOCALE", "Localization to read or update (default: en-US)") { |value| options[:locale] = value }
         opts.on("--platform PLATFORM", "ios, macos, or tvos (default: macos)") { |value| options[:platform] = value }
         opts.on("--name NAME", "Localized app name") { |value| options[:name] = value }
@@ -98,7 +98,7 @@ module ASCTooling
 
     def print_status
       app = @asc.find_app!(@options[:bundle_id])
-      version = @asc.find_editable_version!(app, platform: platform, app_version: @options[:app_version])
+      version = @asc.find_version!(app, platform: platform, app_version: @options[:app_version])
       _, app_info_localization = @asc.find_app_info_localization(app, @options[:locale])
       version_localization = @asc.find_version_localization(version, @options[:locale])
 
@@ -109,6 +109,7 @@ module ASCTooling
         },
         locale: @options[:locale],
         version: version.version_string,
+        version_state: version.app_store_state,
         copyright: version.copyright,
         app_info_localization: app_info_localization && {
           name: app_info_localization.name,
@@ -133,6 +134,7 @@ module ASCTooling
 
       puts "App: #{summary.dig(:app, :name)} (#{summary.dig(:app, :bundle_id)})"
       puts "Version: #{summary[:version]}"
+      puts "State: #{summary[:version_state] || '-'}"
       puts "Copyright: #{summary[:copyright] || '-'}"
       puts "Locale: #{summary[:locale]}"
 

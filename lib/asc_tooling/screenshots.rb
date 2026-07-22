@@ -19,7 +19,7 @@ module ASCTooling
         opts.banner = "Usage: asc-screenshots <status|upload> --bundle-id com.example.app [options]"
 
         opts.on("--bundle-id BUNDLE_ID", "App bundle identifier") { |value| options[:bundle_id] = value }
-        opts.on("--app-version VERSION", "Editable App Store version to target") { |value| options[:app_version] = value }
+        opts.on("--app-version VERSION", "App Store version to target; writes require an editable version") { |value| options[:app_version] = value }
         opts.on("--locale LOCALE", "Localization to read or update (default: en-US)") { |value| options[:locale] = value }
         opts.on("--platform PLATFORM", "ios, macos, or tvos (default: macos)") { |value| options[:platform] = value }
         opts.on("--display-type TYPE", "Screenshot display type (default: APP_DESKTOP)") { |value| options[:display_type] = value }
@@ -110,12 +110,13 @@ module ASCTooling
 
     def print_status
       app = @asc.find_app!(@options[:bundle_id])
-      version = @asc.find_editable_version!(app, platform: platform, app_version: @options[:app_version])
+      version = @asc.find_version!(app, platform: platform, app_version: @options[:app_version])
       version_localization = @asc.find_version_localization(version, @options[:locale])
       summary = summary_for_set(version_localization && @asc.find_screenshot_set(version_localization, display_type))
       summary[:app_name] = app.name
       summary[:bundle_id] = app.bundle_id
       summary[:version] = version.version_string
+      summary[:version_state] = version.app_store_state
       summary[:locale] = @options[:locale]
 
       if @options[:json]
@@ -125,6 +126,7 @@ module ASCTooling
 
       puts "App: #{summary[:app_name]} (#{summary[:bundle_id]})"
       puts "Version: #{summary[:version]}"
+      puts "State: #{summary[:version_state] || '-'}"
       puts "Locale: #{summary[:locale]}"
       puts "Display type: #{summary[:display_type]}"
       puts "Screenshot set: #{summary[:set_id] || 'none'}"

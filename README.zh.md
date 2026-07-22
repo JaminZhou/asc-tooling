@@ -126,6 +126,10 @@ bundle exec asc-tooling init --print
 ./exe/asc-store-setup status --bundle-id com.example.app --app-version 1.0.0 --platform ios
 ```
 
+`asc-metadata status` 和 `asc-screenshots status` 可以通过 `--app-version`
+读取指定的可编辑或已上架版本；对应的写入命令 `asc-metadata apply` 和
+`asc-screenshots upload` 仍然只允许操作可编辑的 App Store 版本。
+
 更完整的使用说明和发布流程见 [docs/release-and-usage.md](docs/release-and-usage.md)。
 
 ## 支持边界

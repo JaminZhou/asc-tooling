@@ -158,6 +158,11 @@ The legacy executable names remain supported for existing scripts:
 ./exe/asc-store-setup status --bundle-id com.example.app --app-version 1.0.0 --platform ios
 ```
 
+`asc-metadata status` and `asc-screenshots status` can read a specific editable
+or released version with `--app-version`. Their mutating counterparts,
+`asc-metadata apply` and `asc-screenshots upload`, continue to require an
+editable App Store version.
+
 `asc-sales` wraps the App Store Connect Sales and Trends report download endpoint.
 The `units` command fetches a Summary Sales Report and aggregates app download,
 redownload, and update units for the app's Apple identifier. `report` downloads
