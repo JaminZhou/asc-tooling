@@ -255,15 +255,15 @@ generation is still out of scope for now.
 4. Create and push a tag from the updated `main` branch:
 
 ```bash
-git tag v0.10.0
-git push origin v0.10.0
+git tag v0.11.0
+git push origin v0.11.0
 ```
 
 5. Let the Release workflow build the gem artifact and create the GitHub
    release. If manual fallback is needed:
 
 ```bash
-gh release create v0.10.0 --generate-notes
+gh release create v0.11.0 --generate-notes
 ```
 
 ## Post-Release SOP
@@ -288,7 +288,7 @@ added later.
 For each repository returned by the scan:
 
 1. Sync `main` and create a release follow-up branch such as
-   `chore/bump-asc-tooling-v0-10-0`.
+   `chore/bump-asc-tooling-v0-11-0`.
 2. Update the `tag:` in `Gemfile` to the newly released version.
 3. Run `bundle update asc_tooling` to refresh `Gemfile.lock`.
 4. Run the repository's normal validation commands.
@@ -300,15 +300,15 @@ Example workflow after choosing one repository from the scan result:
 cd <consumer-repo>
 git switch main
 git pull --ff-only origin main
-git switch -c chore/bump-asc-tooling-v0-10-0
+git switch -c chore/bump-asc-tooling-v0-11-0
 
-# Update Gemfile tag from the previous version to v0.10.0.
+# Update Gemfile tag from the previous version to v0.11.0.
 bundle update asc_tooling
 
 # Run the repo-specific verification here.
 
 git add Gemfile Gemfile.lock
-git commit -m "chore: update asc_tooling to v0.10.0"
+git commit -m "chore: update asc_tooling to v0.11.0"
 git push -u origin HEAD
 gh pr create --fill
 ```
