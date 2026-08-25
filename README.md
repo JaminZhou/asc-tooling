@@ -100,8 +100,6 @@ Then install and run through Bundler:
 bundle install
 bundle exec asc-tooling commands
 bundle exec asc-tooling review status --bundle-id com.example.app
-bundle exec asc-tooling review status --bundle-id com.example.app --app-version 1.2.0 --items
-bundle exec asc-tooling review attach-build --bundle-id com.example.app --app-version 1.2.0 --build-number 2026082501 --dry-run
 bundle exec asc-review status --bundle-id com.example.app
 bundle exec asc-review release --bundle-id com.example.app --app-version 1.2.0
 bundle exec asc-review withdraw --bundle-id com.example.app --app-version 1.2.0
@@ -113,6 +111,8 @@ If you prefer to work from a local checkout while iterating on the tool itself:
 bundle install
 ./exe/asc-tooling commands
 ./exe/asc-review status --bundle-id com.example.app
+./exe/asc-review status --bundle-id com.example.app --app-version 1.2.0 --items
+./exe/asc-review attach-build --bundle-id com.example.app --app-version 1.2.0 --build-number 2026082501 --dry-run
 ```
 
 ## Unified CLI And Skill
@@ -120,7 +120,9 @@ bundle install
 `asc-tooling` is the preferred entrypoint for new automation. It delegates to
 the existing command implementations while giving agents and humans one stable
 surface to discover commands and install the bundled skill.
-The commands in this section require `v0.9.0` or newer.
+The base unified commands in this section require `v0.9.0` or newer.
+`asc-review attach-build` and `asc-review status --items` are currently
+available from the `main` branch and will ship in the next tagged release.
 
 ```bash
 bundle exec asc-tooling commands
