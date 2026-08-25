@@ -64,7 +64,7 @@
 ```ruby
 gem "asc_tooling",
   git: "https://github.com/JaminZhou/asc-tooling.git",
-  tag: "v0.10.0"
+  tag: "v0.11.0"
 ```
 
 然后通过 Bundler 使用：
@@ -89,8 +89,7 @@ bundle install
 
 新自动化优先使用 `asc-tooling` 入口。它会委派到现有命令实现，同时给人和 agent 一个稳定的命令发现、执行和 skill 安装入口。
 基础统一命令需要 `v0.9.0` 或更新版本。`asc-review attach-build` 和
-`asc-review status --items` 当前仅在 `main` 分支提供，并将在下一个 tag
-版本发布。
+`asc-review status --items` 需要 `v0.11.0` 或更新版本。
 
 ```bash
 bundle exec asc-tooling commands

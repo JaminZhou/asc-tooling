@@ -91,7 +91,7 @@ Install it from the public repository in a product `Gemfile`:
 ```ruby
 gem "asc_tooling",
   git: "https://github.com/JaminZhou/asc-tooling.git",
-  tag: "v0.10.0"
+  tag: "v0.11.0"
 ```
 
 Then install and run through Bundler:
@@ -121,8 +121,8 @@ bundle install
 the existing command implementations while giving agents and humans one stable
 surface to discover commands and install the bundled skill.
 The base unified commands in this section require `v0.9.0` or newer.
-`asc-review attach-build` and `asc-review status --items` are currently
-available from the `main` branch and will ship in the next tagged release.
+`asc-review attach-build` and `asc-review status --items` require `v0.11.0`
+or newer.
 
 ```bash
 bundle exec asc-tooling commands
