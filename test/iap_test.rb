@@ -92,6 +92,16 @@ class ASCToolingIAPTest < Minitest::Test
     refute helper.send(:first_iap_web_submission_required?)
   end
 
+  def test_first_iap_waiting_for_review_allows_a_ready_follow_up_product
+    client = FakeClient.new([
+                              iap("first", state: "WAITING_FOR_REVIEW"),
+                              iap("next", state: "READY_TO_SUBMIT")
+                            ])
+    helper = build_iap(client, product_ids: ["next"])
+
+    refute helper.send(:first_iap_web_submission_required?)
+  end
+
   def test_first_iap_guard_considers_reviewed_iap_beyond_the_first_page_size
     first_page = Array.new(ASCTooling::IAP::DEFAULT_LIMIT) do |index|
       iap("ready-#{index}", state: "READY_TO_SUBMIT")
@@ -117,6 +127,18 @@ class ASCToolingIAPTest < Minitest::Test
     assert helper.send(:first_iap_review_error?, prefixed)
     client.define_singleton_method(:api_error_codes) { |_payload| [] }
     assert helper.send(:first_iap_review_error?, message)
+  end
+
+  def test_first_iap_error_matching_rejects_generic_app_version_message
+    client = FakeClient.new([])
+    helper = build_iap(client)
+    error = ASCTooling::APIError.new(
+      "submit",
+      409,
+      { "errors" => [{ "detail" => "The in-app purchase must be submitted with an app version." }] }
+    )
+
+    refute helper.send(:first_iap_review_error?, error)
   end
 
   private

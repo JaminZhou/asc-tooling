@@ -274,13 +274,14 @@ module ASCTooling
       request_json("GET", "/v1/builds", params: params).fetch("data", [])
     end
 
-    def find_build_by_number(app_id, app_version, build_number)
+    def find_build_by_number(app_id, app_version, build_number, platform:)
       request_json(
         "GET",
         "/v1/builds",
         params: {
           "filter[app]" => app_id,
           "filter[preReleaseVersion.version]" => app_version,
+          "filter[preReleaseVersion.platform]" => platform,
           "filter[version]" => build_number,
           "limit" => "1"
         }

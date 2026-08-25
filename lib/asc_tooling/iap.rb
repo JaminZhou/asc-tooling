@@ -16,6 +16,11 @@ module ASCTooling
       DEVELOPER_REMOVED_FROM_SALE
       REMOVED_FROM_SALE
     ].freeze
+    SUBMITTED_IAP_STATES = %w[
+      PENDING_BINARY_APPROVAL
+      WAITING_FOR_REVIEW
+      IN_REVIEW
+    ].freeze
     DIRECT_SUBMITTABLE_IAP_STATES = %w[
       READY_TO_SUBMIT
     ].freeze
@@ -431,14 +436,15 @@ module ASCTooling
     end
 
     def first_iap_web_submission_required?
-      has_reviewed_iap = all_iaps.any? do |iap|
-        REVIEWED_IAP_STATES.include?(iap.dig("attributes", "state"))
+      has_completed_first_iap_web_flow = all_iaps.any? do |iap|
+        state = iap.dig("attributes", "state")
+        REVIEWED_IAP_STATES.include?(state) || SUBMITTED_IAP_STATES.include?(state)
       end
       has_direct_submission_candidate = all_iaps.any? do |iap|
         DIRECT_SUBMITTABLE_IAP_STATES.include?(iap.dig("attributes", "state"))
       end
 
-      !has_reviewed_iap && has_direct_submission_candidate
+      !has_completed_first_iap_web_flow && has_direct_submission_candidate
     end
 
     def ensure_direct_submission_supported!
@@ -450,7 +456,8 @@ module ASCTooling
       return true if codes.any? { |code| code.start_with?(FIRST_IAP_REVIEW_ERROR_PREFIX) }
 
       error_text = JSON.generate(error.payload)
-      error_text.match?(/first.{0,40}in[- ]?app purchase|in[- ]?app purchase.{0,80}app version/i)
+      first_iap_mentioned = error_text.match?(/first.{0,40}in[- ]?app purchase|in[- ]?app purchase.{0,40}first/i)
+      first_iap_mentioned && error_text.match?(/app(?: store)? version/i)
     end
 
     def first_iap_web_submission_message

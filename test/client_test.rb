@@ -370,13 +370,14 @@ class ASCToolingClientTest < Minitest::Test
       }
     end
 
-    build = client.find_build_by_number("app-123", "1.3.0", "2026082501")
+    build = client.find_build_by_number("app-123", "1.3.0", "2026082501", platform: "IOS")
 
     assert_equal "build-123", build["id"]
     assert_equal "GET", captured[:method]
     assert_equal "/v1/builds", captured[:path]
     assert_equal "app-123", captured[:params]["filter[app]"]
     assert_equal "1.3.0", captured[:params]["filter[preReleaseVersion.version]"]
+    assert_equal "IOS", captured[:params]["filter[preReleaseVersion.platform]"]
     assert_equal "2026082501", captured[:params]["filter[version]"]
     assert_equal "1", captured[:params]["limit"]
   end

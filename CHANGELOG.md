@@ -32,6 +32,11 @@ for product repositories that consume `asc_tooling`.
   search to the 20 newest uploads.
 - Included the IAP version resource ID in text review-item labels so multiple
   version-1 products remain distinguishable.
+- Scoped explicit build-number lookup to the selected platform for
+  multi-platform apps.
+- Treated a first IAP already submitted for review as satisfying the required
+  web joint-submission step, while narrowing fallback error matching to
+  explicit first-IAP and app-version wording.
 
 ## 0.10.0 - 2026-07-22
 

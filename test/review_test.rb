@@ -43,7 +43,9 @@ class ASCToolingReviewTest < Minitest::Test
       @builds
     end
 
-    def find_build_by_number(_app_id, _app_version, build_number)
+    def find_build_by_number(_app_id, _app_version, build_number, platform:)
+      raise "unexpected platform #{platform}" unless platform == "MAC_OS"
+
       @builds.find { |build| build.dig("attributes", "version") == build_number }
     end
 

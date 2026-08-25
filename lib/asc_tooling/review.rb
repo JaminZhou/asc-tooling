@@ -270,7 +270,12 @@ module ASCTooling
 
     def find_target_build!(app_id, app_version)
       if @options[:build_number]
-        build = @asc.find_build_by_number(app_id, app_version, @options[:build_number])
+        build = @asc.find_build_by_number(
+          app_id,
+          app_version,
+          @options[:build_number],
+          platform: platform
+        )
         raise OptionParser::InvalidArgument, "build #{@options[:build_number]} not found for version #{app_version}" unless build
         unless valid_app_store_build?(build)
           raise OptionParser::InvalidArgument,
