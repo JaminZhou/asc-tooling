@@ -274,6 +274,41 @@ module ASCTooling
       request_json("GET", "/v1/builds", params: params).fetch("data", [])
     end
 
+    def find_build_by_number(app_id, app_version, build_number)
+      request_json(
+        "GET",
+        "/v1/builds",
+        params: {
+          "filter[app]" => app_id,
+          "filter[preReleaseVersion.version]" => app_version,
+          "filter[version]" => build_number,
+          "limit" => "1"
+        }
+      ).fetch("data", []).find do |build|
+        build.dig("attributes", "version") == build_number
+      end
+    end
+
+    def paginated_resources(path, params: {}, limit: DEFAULT_PAGE_LIMIT)
+      resources = []
+      next_path = path
+      next_params = params.merge("limit" => limit.to_s)
+
+      loop do
+        response = request_json("GET", next_path, params: next_params)
+        resources.concat(response.fetch("data", []))
+
+        next_link = response.dig("links", "next")
+        break if self.class.blank?(next_link)
+
+        uri = URI(next_link)
+        next_path = uri.path
+        next_params = URI.decode_www_form(uri.query || "").to_h
+      end
+
+      resources
+    end
+
     def update_resource(type, id, attributes:)
       request_json(
         "PATCH",

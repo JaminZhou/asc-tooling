@@ -270,7 +270,7 @@ module ASCTooling
 
     def find_target_build!(app_id, app_version)
       if @options[:build_number]
-        build = build_candidates(app_id, app_version).find { |item| item.dig("attributes", "version") == @options[:build_number] }
+        build = @asc.find_build_by_number(app_id, app_version, @options[:build_number])
         raise OptionParser::InvalidArgument, "build #{@options[:build_number]} not found for version #{app_version}" unless build
         unless valid_app_store_build?(build)
           raise OptionParser::InvalidArgument,
@@ -491,7 +491,12 @@ module ASCTooling
 
     def review_submission_item_label(item)
       resource = item[:relationship] || item[:resource_type] || "unknown"
-      identity = item[:version] || item[:product_id] || item[:name] || item[:resource_id] || "unknown"
+      identity = if resource == "inAppPurchaseVersion"
+                   iap_identity = item[:product_id] || item[:name] || item[:resource_id] || "unknown"
+                   item[:version] ? "#{iap_identity} (version #{item[:version]})" : iap_identity
+                 else
+                   item[:version] || item[:product_id] || item[:name] || item[:resource_id] || "unknown"
+                 end
       state = item[:state] || "UNKNOWN"
       "#{resource} #{identity} [#{state}]"
     end

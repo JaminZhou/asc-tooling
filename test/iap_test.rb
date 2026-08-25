@@ -15,7 +15,6 @@ class ASCToolingIAPTest < Minitest::Test
 
     def request_json(method, path, params: nil, body: nil)
       @requests << { method: method, path: path, params: params, body: body }
-      return { "data" => @iaps } if method == "GET" && path == "/v1/apps/app-123/inAppPurchasesV2"
       return { "data" => [] } if method == "GET" && path.end_with?("/inAppPurchaseLocalizations")
       return { "data" => nil } if method == "GET" && path.end_with?("/appStoreReviewScreenshot")
       return { "data" => nil } if method == "GET" && path.end_with?("/inAppPurchaseAvailability")
@@ -23,6 +22,11 @@ class ASCToolingIAPTest < Minitest::Test
       return { "data" => { "id" => "submission-123" } } if method == "POST" && path == "/v1/inAppPurchaseSubmissions"
 
       raise "unexpected request: #{method} #{path}"
+    end
+
+    def paginated_resources(path, limit:, params: {})
+      @requests << { method: "GET", path: path, params: params.merge("limit" => limit.to_s), body: nil }
+      @iaps
     end
 
     def api_error_codes(_payload)
@@ -86,6 +90,17 @@ class ASCToolingIAPTest < Minitest::Test
     helper = build_iap(client)
 
     refute helper.send(:first_iap_web_submission_required?)
+  end
+
+  def test_first_iap_guard_considers_reviewed_iap_beyond_the_first_page_size
+    first_page = Array.new(ASCTooling::IAP::DEFAULT_LIMIT) do |index|
+      iap("ready-#{index}", state: "READY_TO_SUBMIT")
+    end
+    client = FakeClient.new(first_page + [iap("historical", state: "APPROVED")])
+    helper = build_iap(client)
+
+    refute helper.send(:first_iap_web_submission_required?)
+    assert_equal ASCTooling::IAP::DEFAULT_LIMIT.to_s, client.requests.first[:params]["limit"]
   end
 
   def test_first_iap_error_matching_accepts_prefix_and_message_variants

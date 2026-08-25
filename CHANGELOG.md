@@ -24,6 +24,15 @@ for product repositories that consume `asc_tooling`.
 - Restricted explicit review build selection to builds that are both `VALID`
   and `APP_STORE_ELIGIBLE`.
 
+### Fixed
+
+- Followed App Store Connect pagination before applying the app-wide first-IAP
+  guard, so historical reviewed products beyond the first 200 remain visible.
+- Queried explicitly selected builds by build number instead of limiting the
+  search to the 20 newest uploads.
+- Included the IAP version resource ID in text review-item labels so multiple
+  version-1 products remain distinguishable.
+
 ## 0.10.0 - 2026-07-22
 
 ### Added

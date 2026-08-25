@@ -424,11 +424,10 @@ module ASCTooling
     end
 
     def all_iaps
-      @all_iaps ||= @asc.request_json(
-        "GET",
+      @all_iaps ||= @asc.paginated_resources(
         "/v1/apps/#{app.id}/inAppPurchasesV2",
-        params: { "limit" => DEFAULT_LIMIT.to_s }
-      ).fetch("data", []).sort_by { |item| item.dig("attributes", "productId").to_s }
+        limit: DEFAULT_LIMIT
+      ).sort_by { |item| item.dig("attributes", "productId").to_s }
     end
 
     def first_iap_web_submission_required?

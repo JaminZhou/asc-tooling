@@ -43,6 +43,10 @@ class ASCToolingReviewTest < Minitest::Test
       @builds
     end
 
+    def find_build_by_number(_app_id, _app_version, build_number)
+      @builds.find { |build| build.dig("attributes", "version") == build_number }
+    end
+
     def request_json(method, path, params: nil, body: nil)
       @requests << {
         method: method,
@@ -322,6 +326,10 @@ class ASCToolingReviewTest < Minitest::Test
     assert_equal "1.3.0", items.first[:version]
     assert_equal "inAppPurchaseVersion", items.last[:relationship]
     assert_equal 1, items.last[:version]
+    assert_equal(
+      "inAppPurchaseVersion iap-version-123 (version 1) [READY_FOR_REVIEW]",
+      review.send(:review_submission_item_label, items.last)
+    )
     assert_equal(
       "appStoreVersion,inAppPurchaseVersion",
       client.requests.first[:params]["include"]
