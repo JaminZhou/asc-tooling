@@ -354,13 +354,12 @@ module ASCTooling
     end
 
     def review_submission_items_response(submission_id)
-      @asc.request_json(
-        "GET",
+      @asc.paginated_document(
         "/v1/reviewSubmissions/#{submission_id}/items",
         params: {
-          "include" => SUBMISSION_ITEM_INCLUDES.join(","),
-          "limit" => SUBMISSION_ITEM_LIMIT.to_s
-        }
+          "include" => SUBMISSION_ITEM_INCLUDES.join(",")
+        },
+        limit: SUBMISSION_ITEM_LIMIT
       )
     end
 

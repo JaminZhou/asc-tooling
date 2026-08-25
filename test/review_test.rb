@@ -63,6 +63,14 @@ class ASCToolingReviewTest < Minitest::Test
       { "data" => { "id" => "release-request-123" } }
     end
 
+    def paginated_document(path, limit:, params: {})
+      request_json(
+        "GET",
+        path,
+        params: params.merge("limit" => limit.to_s)
+      )
+    end
+
     def delete_resource(path)
       @deleted_resources << path
       {}

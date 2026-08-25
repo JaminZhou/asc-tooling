@@ -32,6 +32,8 @@ for product repositories that consume `asc_tooling`.
   search to the 20 newest uploads.
 - Included the IAP version resource ID in text review-item labels so multiple
   version-1 products remain distinguishable.
+- Followed every review-submission item page and merged included resources so
+  `status --items` does not silently stop after 50 items.
 - Scoped explicit build-number lookup to the selected platform for
   multi-platform apps.
 - Moved implicit latest-build selection to a platform-scoped server-side query

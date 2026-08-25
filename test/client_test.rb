@@ -443,6 +443,41 @@ class ASCToolingClientTest < Minitest::Test
     assert_equal "200", requests.last[:params]["limit"]
   end
 
+  def test_paginated_document_merges_data_and_deduplicates_included_resources
+    client = ASCTooling::Client.allocate
+    client.define_singleton_method(:request_json) do |_method, _path, params: nil, body: nil|
+      if params["cursor"] == "next-page"
+        {
+          "data" => [{ "id" => "item-51" }],
+          "included" => [
+            { "type" => "inAppPurchaseVersions", "id" => "iap-version-1" },
+            { "type" => "appStoreVersions", "id" => "app-version-1" }
+          ]
+        }
+      else
+        {
+          "data" => [{ "id" => "item-1" }],
+          "included" => [{ "type" => "inAppPurchaseVersions", "id" => "iap-version-1" }],
+          "links" => {
+            "next" => "https://api.appstoreconnect.apple.com/v1/reviewSubmissions/submission-1/items?cursor=next-page&limit=50"
+          }
+        }
+      end
+    end
+
+    document = client.paginated_document(
+      "/v1/reviewSubmissions/submission-1/items",
+      params: { "include" => "appStoreVersion,inAppPurchaseVersion" },
+      limit: 50
+    )
+
+    item_ids = document["data"].map { |item| item["id"] }
+    assert_equal %w[item-1 item-51], item_ids
+    assert_equal 2, document["included"].length
+    included_ids = document["included"].map { |resource| resource["id"] }
+    assert_equal %w[iap-version-1 app-version-1], included_ids
+  end
+
   def test_camelize_keys_converts_snake_case
     client = ASCTooling::Client.allocate
     result = client.send(:camelize_keys, {
