@@ -8,7 +8,7 @@ for product repositories that consume `asc_tooling`.
 
 ## Unreleased
 
-## 0.11.0 - 2026-08-25
+## 0.11.0 - 2026-08-26
 
 ### Added
 
