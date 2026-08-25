@@ -17,7 +17,9 @@ module ASCTooling
       REMOVED_FROM_SALE
     ].freeze
     SUBMITTED_IAP_STATES = %w[
+      DEVELOPER_ACTION_NEEDED
       PENDING_BINARY_APPROVAL
+      REJECTED
       WAITING_FOR_REVIEW
       IN_REVIEW
     ].freeze

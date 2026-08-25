@@ -102,6 +102,26 @@ class ASCToolingIAPTest < Minitest::Test
     refute helper.send(:first_iap_web_submission_required?)
   end
 
+  def test_first_iap_requiring_developer_action_allows_a_ready_follow_up_product
+    client = FakeClient.new([
+                              iap("first", state: "DEVELOPER_ACTION_NEEDED"),
+                              iap("next", state: "READY_TO_SUBMIT")
+                            ])
+    helper = build_iap(client, product_ids: ["next"])
+
+    refute helper.send(:first_iap_web_submission_required?)
+  end
+
+  def test_rejected_first_iap_allows_a_ready_follow_up_product
+    client = FakeClient.new([
+                              iap("first", state: "REJECTED"),
+                              iap("next", state: "READY_TO_SUBMIT")
+                            ])
+    helper = build_iap(client, product_ids: ["next"])
+
+    refute helper.send(:first_iap_web_submission_required?)
+  end
+
   def test_first_iap_guard_considers_reviewed_iap_beyond_the_first_page_size
     first_page = Array.new(ASCTooling::IAP::DEFAULT_LIMIT) do |index|
       iap("ready-#{index}", state: "READY_TO_SUBMIT")

@@ -35,8 +35,9 @@ for product repositories that consume `asc_tooling`.
 - Scoped explicit build-number lookup to the selected platform for
   multi-platform apps.
 - Treated a first IAP already submitted for review as satisfying the required
-  web joint-submission step, while narrowing fallback error matching to
-  explicit first-IAP and app-version wording.
+  web joint-submission step, including rejected and developer-action states,
+  while narrowing fallback error matching to explicit first-IAP and
+  app-version wording.
 
 ## 0.10.0 - 2026-07-22
 
