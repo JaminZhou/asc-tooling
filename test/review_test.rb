@@ -37,16 +37,20 @@ class ASCToolingReviewTest < Minitest::Test
       find_version!(app, platform: platform, app_version: app_version, states: ASCTooling::Client::EDITABLE_STATES)
     end
 
-    def build_candidates(_app_id, _app_version, limit:)
-      raise "unexpected build limit #{limit}" unless limit == ASCTooling::Review::BUILD_LIMIT
-
-      @builds
-    end
-
     def find_build_by_number(_app_id, _app_version, build_number, platform:)
       raise "unexpected platform #{platform}" unless platform == "MAC_OS"
 
       @builds.find { |build| build.dig("attributes", "version") == build_number }
+    end
+
+    def find_latest_eligible_build(_app_id, _app_version, platform:)
+      raise "unexpected platform #{platform}" unless platform == "MAC_OS"
+
+      @builds.find do |build|
+        attributes = build.fetch("attributes", {})
+        attributes["processingState"] == "VALID" &&
+          attributes["buildAudienceType"] == "APP_STORE_ELIGIBLE"
+      end
     end
 
     def request_json(method, path, params: nil, body: nil)
@@ -280,6 +284,27 @@ class ASCToolingReviewTest < Minitest::Test
     end
 
     assert_includes error.message, "not VALID and APP_STORE_ELIGIBLE"
+  end
+
+  def test_find_target_build_uses_platform_scoped_eligible_lookup_when_number_is_omitted
+    eligible_build = {
+      "id" => "build-eligible",
+      "attributes" => {
+        "version" => "2026082501",
+        "processingState" => "VALID",
+        "buildAudienceType" => "APP_STORE_ELIGIBLE"
+      }
+    }
+    client = FakeClient.new(
+      app: OpenStruct.new(id: "app-123"),
+      versions: [],
+      builds: [eligible_build]
+    )
+    review = build_review(client, app_version: "1.3.0")
+
+    selected = review.send(:find_target_build!, "app-123", "1.3.0")
+
+    assert_equal "build-eligible", selected["id"]
   end
 
   def test_review_submission_items_reports_app_and_iap_version_linkages

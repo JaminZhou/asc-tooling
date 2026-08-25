@@ -19,6 +19,8 @@ module ASCTooling
   end
 
   class Client
+    include Pagination
+
     KEY_ID_ENV_NAMES = %w[
       ASC_KEY_ID
       APP_STORE_CONNECT_API_KEY_KEY_ID
@@ -290,24 +292,20 @@ module ASCTooling
       end
     end
 
-    def paginated_resources(path, params: {}, limit: DEFAULT_PAGE_LIMIT)
-      resources = []
-      next_path = path
-      next_params = params.merge("limit" => limit.to_s)
-
-      loop do
-        response = request_json("GET", next_path, params: next_params)
-        resources.concat(response.fetch("data", []))
-
-        next_link = response.dig("links", "next")
-        break if self.class.blank?(next_link)
-
-        uri = URI(next_link)
-        next_path = uri.path
-        next_params = URI.decode_www_form(uri.query || "").to_h
-      end
-
-      resources
+    def find_latest_eligible_build(app_id, app_version, platform:)
+      request_json(
+        "GET",
+        "/v1/builds",
+        params: {
+          "filter[app]" => app_id,
+          "filter[preReleaseVersion.version]" => app_version,
+          "filter[preReleaseVersion.platform]" => platform,
+          "filter[processingState]" => "VALID",
+          "filter[buildAudienceType]" => "APP_STORE_ELIGIBLE",
+          "sort" => "-uploadedDate",
+          "limit" => "1"
+        }
+      ).fetch("data", []).first
     end
 
     def update_resource(type, id, attributes:)

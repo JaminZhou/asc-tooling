@@ -3,7 +3,6 @@ require "optparse"
 
 module ASCTooling
   class Review
-    BUILD_LIMIT = 20
     SUBMISSION_LIMIT = 20
     SUBMISSION_ITEM_LIMIT = 50
     SUBMISSION_ITEM_INCLUDES = %w[
@@ -292,16 +291,12 @@ module ASCTooling
     end
 
     def find_candidate_build(app_id, app_version)
-      build_candidates(app_id, app_version).find { |item| valid_app_store_build?(item) }
+      @asc.find_latest_eligible_build(app_id, app_version, platform: platform)
     end
 
     def valid_app_store_build?(build)
       attrs = build.fetch("attributes", {})
       attrs["processingState"] == "VALID" && attrs["buildAudienceType"] == "APP_STORE_ELIGIBLE"
-    end
-
-    def build_candidates(app_id, app_version)
-      @asc.build_candidates(app_id, app_version, limit: BUILD_LIMIT)
     end
 
     def attach_build_to_version!(app, version, target_build)

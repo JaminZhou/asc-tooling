@@ -34,6 +34,9 @@ for product repositories that consume `asc_tooling`.
   version-1 products remain distinguishable.
 - Scoped explicit build-number lookup to the selected platform for
   multi-platform apps.
+- Moved implicit latest-build selection to a platform-scoped server-side query
+  for `VALID`, `APP_STORE_ELIGIBLE` builds, avoiding the previous newest-20
+  client-side search limit.
 - Treated a first IAP already submitted for review as satisfying the required
   web joint-submission step, including rejected and developer-action states,
   while narrowing fallback error matching to explicit first-IAP and
