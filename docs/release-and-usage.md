@@ -29,7 +29,17 @@ The focused executable names below remain supported for existing scripts.
 
 ```bash
 bundle exec asc-review status --bundle-id com.example.app --json
-bundle exec asc-review submit --bundle-id com.example.app --release-type manual
+bundle exec asc-review status --bundle-id com.example.app --app-version 1.2.0 --items
+bundle exec asc-review attach-build \
+  --bundle-id com.example.app \
+  --app-version 1.2.0 \
+  --build-number 2026082501 \
+  --dry-run
+bundle exec asc-review submit \
+  --bundle-id com.example.app \
+  --app-version 1.2.0 \
+  --build-number 2026082501 \
+  --release-type manual
 bundle exec asc-review release --bundle-id com.example.app --app-version 1.2.0
 bundle exec asc-review withdraw --bundle-id com.example.app --app-version 1.2.0
 ```
@@ -37,6 +47,17 @@ bundle exec asc-review withdraw --bundle-id com.example.app --app-version 1.2.0
 `asc-review release` sends the manual release request for a version in
 `PENDING_DEVELOPER_RELEASE`. If the version is already processing or live, it
 no-ops with a status message.
+
+`asc-review attach-build` requires an explicit `--app-version`, accepts an
+optional `--build-number` instead of the latest eligible build, and only links
+builds that are both `VALID` and `APP_STORE_ELIGIBLE`. The command supports
+`--dry-run` and verifies the attached build by reading the version again after
+the mutation. `asc-review submit --build-number ...` uses the same verified
+attachment path before creating or submitting the review submission.
+
+Pass `--items` to `asc-review status` when the release needs proof of the exact
+App Store version and IAP version items grouped in each review submission. The
+same item summaries are included in `--json` output.
 
 `asc-review withdraw` removes a version from App Review by deleting the
 `appStoreVersionSubmission`. It supports submitted states such as
@@ -164,9 +185,11 @@ bundle exec asc-iap submit \
 ```
 
 `asc-iap prepare` currently automates review screenshot upload and availability
-setup. If Apple returns `FIRST_IAP_MUST_BE_SUBMITTED_ON_VERSION`, the app's
-first IAP still needs to be attached to the app version submission in the App
-Store Connect web UI before that version is submitted.
+setup. `asc-iap status` reports `first_iap_web_submission_required`, and
+`asc-iap submit` checks that condition before making any submission request.
+Apple's first-IAP exception still requires attaching the IAP to the app version
+submission in the App Store Connect web UI. Once the app has a previously
+approved IAP, products in `READY_TO_SUBMIT` can use direct CLI submission.
 
 ### Beta
 

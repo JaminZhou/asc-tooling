@@ -8,6 +8,22 @@ for product repositories that consume `asc_tooling`.
 
 ## Unreleased
 
+### Added
+
+- Added `asc-review attach-build` for explicitly linking a selected valid,
+  App Store-eligible build to an editable App Store version, with dry-run and
+  post-mutation read-back verification.
+- Added `asc-review status --items` to include App Store version and in-app
+  purchase version items for each review submission in text or JSON output.
+
+### Changed
+
+- Added an IAP status signal and preflight guard for the app's first IAP so
+  `asc-iap submit` stops before mutation when Apple requires the App Store
+  Connect web UI joint-submission flow.
+- Restricted explicit review build selection to builds that are both `VALID`
+  and `APP_STORE_ELIGIBLE`.
+
 ## 0.10.0 - 2026-07-22
 
 ### Added

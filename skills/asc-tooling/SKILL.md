@@ -22,6 +22,8 @@ Prefer the unified CLI when available:
 ```bash
 asc-tooling commands
 asc-tooling review status --bundle-id com.example.app
+asc-tooling review status --bundle-id com.example.app --app-version 1.2.0 --items
+asc-tooling review attach-build --bundle-id com.example.app --app-version 1.2.0 --build-number 2026082501 --dry-run
 asc-tooling metadata status --bundle-id com.example.app --app-version 1.2.0 --locale en-US
 asc-tooling beta status --bundle-id com.example.app
 asc-tooling sales units --bundle-id com.example.app --vendor-number 12345678 --report-date 2026-04-10
@@ -35,6 +37,15 @@ asc-tooling store-setup status --bundle-id com.example.app --app-version 1.0.0 -
 Metadata and screenshot status commands may read an explicitly selected
 editable or released App Store version. Metadata apply and screenshot upload
 must continue to target editable versions only.
+
+Review build attachment requires an explicit App Store version, only accepts a
+`VALID`, `APP_STORE_ELIGIBLE` build, and verifies the relationship after a real
+mutation. Use review status with `--items` when the exact App and IAP version
+items in a review submission need to be confirmed.
+
+IAP status reports when Apple's first-IAP exception requires the App Store
+Connect web UI. IAP submit must run that preflight before any submission
+mutation and must not represent the browser-only joint submission as complete.
 
 The legacy executable names remain supported:
 

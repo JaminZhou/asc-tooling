@@ -11,8 +11,7 @@ mutating operations, no product secrets, and clear web-confirmation boundaries.
 
 - Primary reference: Apple App Store Connect API documentation and the official
   OpenAPI specification download.
-- Snapshot checked: official OpenAPI zip downloaded on 2026-07-07; archive
-  contents were timestamped 2026-06-13.
+- Snapshot checked: official OpenAPI 4.4.1 zip downloaded on 2026-08-25.
 - Local command surface checked: `review`, `metadata`, `beta`, `sales`,
   `screenshots`, `iap`, `version`, `availability`, and `store-setup`.
 
@@ -33,7 +32,8 @@ are true:
 
 | Area | Current support | Official API signal | Priority | Recommended next probe |
 | --- | --- | --- | --- | --- |
-| App Privacy | Web confirmation only. Metadata commands cover privacy policy URLs, not App Privacy nutrition-label declarations. | No direct privacy-detail path was present in the checked OpenAPI paths. Apple release notes mention privacy details and IDFA context, so this should stay monitored. | High to investigate, low to implement until a stable endpoint is confirmed. | Re-check the latest OpenAPI spec before each major release. If a privacy declaration resource appears, start with a read-only status command and keep web confirmation in release docs until verified against a real app. |
+| App Privacy | Web confirmation only. Metadata commands cover privacy policy URLs, not App Privacy nutrition-label declarations. | No direct privacy-detail path is present in OpenAPI 4.4.1. | High to monitor, blocked to implement until a stable endpoint is confirmed. | Re-check the latest OpenAPI spec before each major release. If a privacy declaration resource appears, start with a read-only status command and keep web confirmation in release docs until verified against a real app. |
+| IAP version review submissions | Legacy IAP readiness and direct submission helpers are supported. First-IAP preflight is supported, but creating and grouping `inAppPurchaseVersions` into a review submission is not yet exposed. | OpenAPI 4.4.1 includes `inAppPurchaseVersions` and `reviewSubmissionItems.inAppPurchaseVersion`. Apple explicitly excludes the app's first IAP from this API submission path. | High. It removes repeatable web work after the first IAP is approved. | Add status and dry-run-first commands for IAP draft versions, then add explicit review-submission item creation for subsequent IAPs. Keep the first-IAP web boundary as a hard preflight. |
 | Accessibility Declarations | Not supported. | The checked OpenAPI spec includes `/v1/accessibilityDeclarations`, `/v1/accessibilityDeclarations/{id}`, and app relationships. | Medium-high. It is release-facing and could become a repeatable checklist item. | Add a read-only probe that lists declarations for an app and compares expected device families. Consider mutating support only after a product has a stable accessibility declaration template. |
 | Phased Release | Partially adjacent. `asc-review release` handles manual release requests, but not phased release setup or pause/resume. | The spec includes `/v1/appStoreVersionPhasedReleases` and app-store-version relationships. | Medium. Useful for controlled production rollout, but not every product needs it. | Prototype `phased-release status` first. Then evaluate `create`, `pause`, `resume`, and `complete` commands with dry-run output. |
 | Analytics Reports | Not supported. `asc-sales` covers Sales and Trends only. | The spec includes analytics report requests, reports, instances, and segments. | Medium-low. Useful for reporting, but separate from core release automation. | Start with a read-only/report-download spike outside the main CLI. Promote only if a product needs recurring post-release metrics that Sales and Trends cannot answer. |
@@ -50,6 +50,20 @@ are true:
   commands.
 - Do not mix Customer Reviews with App Review Resolution Center until Apple
   exposes a stable JWT-based Resolution Center API.
+- Do not automate agreement acceptance, App Privacy declaration publishing, or
+  Apple silicon Mac availability and compatibility verification as supported
+  commands while those workflows remain absent from the official OpenAPI spec.
+
+## Recently Promoted
+
+- Review build attachment is available through `asc-review attach-build`, with
+  dry-run, eligibility checks, and read-back verification.
+- Review submission item inspection is available through
+  `asc-review status --items`, including App Store version and IAP version
+  linkages.
+- First-IAP direct-submission detection is a status signal and a pre-mutation
+  guard in `asc-iap submit`; the required web joint-submission step remains a
+  documented Apple API boundary.
 
 ## Review Cadence
 

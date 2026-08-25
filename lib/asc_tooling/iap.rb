@@ -10,7 +10,15 @@ module ASCTooling
     LOCALIZATION_LIMIT = 50
     POLL_INTERVAL_SECONDS = 2
     POLL_ATTEMPTS = 30
-    FIRST_IAP_REVIEW_ERROR = "STATE_ERROR.FIRST_IAP_MUST_BE_SUBMITTED_ON_VERSION".freeze
+    FIRST_IAP_REVIEW_ERROR_PREFIX = "STATE_ERROR.FIRST_IAP".freeze
+    REVIEWED_IAP_STATES = %w[
+      APPROVED
+      DEVELOPER_REMOVED_FROM_SALE
+      REMOVED_FROM_SALE
+    ].freeze
+    DIRECT_SUBMITTABLE_IAP_STATES = %w[
+      READY_TO_SUBMIT
+    ].freeze
 
     def self.run(argv = ARGV)
       options = {
@@ -91,6 +99,7 @@ module ASCTooling
 
       puts "App: #{summary[:app_name]} (#{summary[:bundle_id]})"
       puts "Products: #{summary[:count]}"
+      puts "Submission path: App Store Connect web UI required for the app's first IAP" if summary[:first_iap_web_submission_required]
 
       summary[:products].each_with_index do |product, index|
         puts "  #{index + 1}. #{product[:name]} (#{product[:product_id]}) [#{product[:state]}]"
@@ -245,11 +254,15 @@ module ASCTooling
 
     def submit
       submitted = 0
+      pending_iaps = target_iaps.select do |iap|
+        DIRECT_SUBMITTABLE_IAP_STATES.include?(iap.dig("attributes", "state"))
+      end
+      ensure_direct_submission_supported! unless pending_iaps.empty?
 
       target_iaps.each do |iap|
         state = iap.dig("attributes", "state")
-        if state == "WAITING_FOR_REVIEW"
-          puts "No change needed: #{product_label(iap)} is already waiting for review."
+        unless DIRECT_SUBMITTABLE_IAP_STATES.include?(state)
+          puts "No change needed: #{product_label(iap)} is #{state}; direct submission requires READY_TO_SUBMIT."
           next
         end
 
@@ -278,12 +291,7 @@ module ASCTooling
             }
           )
         rescue ASCTooling::APIError => e
-          if @asc.api_error_codes(e.payload).include?(FIRST_IAP_REVIEW_ERROR)
-            raise ArgumentError, <<~MESSAGE.strip
-              Apple still requires the app's first in-app purchase to be attached to the app version submission in the App Store Connect web UI.
-              Use `asc-iap prepare` to automate screenshot and availability setup, then select the IAPs on the app version page before submitting that version for review.
-            MESSAGE
-          end
+          raise ArgumentError, first_iap_web_submission_message if first_iap_review_error?(e)
 
           raise
         end
@@ -300,6 +308,7 @@ module ASCTooling
         app_name: app.name,
         bundle_id: app.bundle_id,
         count: target_iaps.size,
+        first_iap_web_submission_required: first_iap_web_submission_required?,
         products: target_iaps.map { |iap| product_summary(iap) }
       }
     end
@@ -397,15 +406,11 @@ module ASCTooling
 
     def target_iaps
       @target_iaps ||= begin
-        iaps = @asc.request_json(
-          "GET",
-          "/v1/apps/#{app.id}/inAppPurchasesV2",
-          params: { "limit" => DEFAULT_LIMIT.to_s }
-        ).fetch("data", [])
+        iaps = all_iaps
 
         product_ids = @options[:product_ids].uniq
         if product_ids.empty?
-          iaps.sort_by { |item| item.dig("attributes", "productId").to_s }
+          iaps
         else
           by_product_id = iaps.to_h do |item|
             [item.dig("attributes", "productId"), item]
@@ -416,6 +421,44 @@ module ASCTooling
           product_ids.map { |product_id| by_product_id.fetch(product_id) }
         end
       end
+    end
+
+    def all_iaps
+      @all_iaps ||= @asc.request_json(
+        "GET",
+        "/v1/apps/#{app.id}/inAppPurchasesV2",
+        params: { "limit" => DEFAULT_LIMIT.to_s }
+      ).fetch("data", []).sort_by { |item| item.dig("attributes", "productId").to_s }
+    end
+
+    def first_iap_web_submission_required?
+      has_reviewed_iap = all_iaps.any? do |iap|
+        REVIEWED_IAP_STATES.include?(iap.dig("attributes", "state"))
+      end
+      has_direct_submission_candidate = all_iaps.any? do |iap|
+        DIRECT_SUBMITTABLE_IAP_STATES.include?(iap.dig("attributes", "state"))
+      end
+
+      !has_reviewed_iap && has_direct_submission_candidate
+    end
+
+    def ensure_direct_submission_supported!
+      raise ArgumentError, first_iap_web_submission_message if first_iap_web_submission_required?
+    end
+
+    def first_iap_review_error?(error)
+      codes = @asc.api_error_codes(error.payload)
+      return true if codes.any? { |code| code.start_with?(FIRST_IAP_REVIEW_ERROR_PREFIX) }
+
+      error_text = JSON.generate(error.payload)
+      error_text.match?(/first.{0,40}in[- ]?app purchase|in[- ]?app purchase.{0,80}app version/i)
+    end
+
+    def first_iap_web_submission_message
+      <<~MESSAGE.strip
+        Apple requires the app's first in-app purchase to be attached to an app version submission in the App Store Connect web UI.
+        Use `asc-iap prepare` to automate screenshot and availability setup, then select the IAPs on the app version page before submitting that version for review.
+      MESSAGE
     end
 
     def app_availability_template
