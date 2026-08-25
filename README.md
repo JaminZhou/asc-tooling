@@ -111,6 +111,8 @@ If you prefer to work from a local checkout while iterating on the tool itself:
 bundle install
 ./exe/asc-tooling commands
 ./exe/asc-review status --bundle-id com.example.app
+./exe/asc-review status --bundle-id com.example.app --app-version 1.2.0 --items
+./exe/asc-review attach-build --bundle-id com.example.app --app-version 1.2.0 --build-number 2026082501 --dry-run
 ```
 
 ## Unified CLI And Skill
@@ -118,7 +120,9 @@ bundle install
 `asc-tooling` is the preferred entrypoint for new automation. It delegates to
 the existing command implementations while giving agents and humans one stable
 surface to discover commands and install the bundled skill.
-The commands in this section require `v0.9.0` or newer.
+The base unified commands in this section require `v0.9.0` or newer.
+`asc-review attach-build` and `asc-review status --items` are currently
+available from the `main` branch and will ship in the next tagged release.
 
 ```bash
 bundle exec asc-tooling commands
@@ -146,6 +150,8 @@ The legacy executable names remain supported for existing scripts:
 
 ```bash
 ./exe/asc-review status --bundle-id com.example.app
+./exe/asc-review status --bundle-id com.example.app --app-version 1.2.0 --items
+./exe/asc-review attach-build --bundle-id com.example.app --app-version 1.2.0 --build-number 2026082501 --dry-run
 ./exe/asc-review withdraw --bundle-id com.example.app --app-version 1.2.0 --dry-run
 ./exe/asc-metadata status --bundle-id com.example.app --locale en-US
 ./exe/asc-beta status --bundle-id com.example.app
@@ -163,16 +169,23 @@ or released version with `--app-version`. Their mutating counterparts,
 `asc-metadata apply` and `asc-screenshots upload`, continue to require an
 editable App Store version.
 
+`asc-review attach-build` explicitly links a `VALID`, `APP_STORE_ELIGIBLE`
+build to an editable version and verifies the relationship after the API
+mutation. `asc-review submit --build-number ...` keeps the one-command attach
+and submit path. Add `--items` to `asc-review status` to read back the App Store
+version and IAP version resources grouped into each review submission.
+
 `asc-sales` wraps the App Store Connect Sales and Trends report download endpoint.
 The `units` command fetches a Summary Sales Report and aggregates app download,
 redownload, and update units for the app's Apple identifier. `report` downloads
 and prints or saves the raw TSV report.
 
 `asc-iap` currently covers IAP status, review screenshot upload, availability
-sync, and submission attempts. If Apple returns
-`FIRST_IAP_MUST_BE_SUBMITTED_ON_VERSION`, the app's first IAP still needs to be
-attached to the app version in the App Store Connect web UI before that version
-is submitted.
+sync, and direct submission attempts for `READY_TO_SUBMIT` products. Status
+reports when the app's first IAP requires the App Store Connect web UI flow,
+and `submit` performs that preflight before any submission mutation. The first
+IAP still needs to be attached to the app version in the web UI before that
+version is submitted; subsequent eligible IAPs can use direct submission.
 
 `asc-availability` checks whether the app is available in every current App
 Store Connect territory, reports any missing territory IDs, and can create app

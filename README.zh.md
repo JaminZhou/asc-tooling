@@ -88,12 +88,16 @@ bundle install
 ## 统一 CLI 与 Skill
 
 新自动化优先使用 `asc-tooling` 入口。它会委派到现有命令实现，同时给人和 agent 一个稳定的命令发现、执行和 skill 安装入口。
-本节命令需要 `v0.9.0` 或更新版本。
+基础统一命令需要 `v0.9.0` 或更新版本。`asc-review attach-build` 和
+`asc-review status --items` 当前仅在 `main` 分支提供，并将在下一个 tag
+版本发布。
 
 ```bash
 bundle exec asc-tooling commands
 bundle exec asc-tooling --version
 bundle exec asc-tooling review status --bundle-id com.example.app
+bundle exec asc-tooling review status --bundle-id com.example.app --app-version 1.2.0 --items
+bundle exec asc-tooling review attach-build --bundle-id com.example.app --app-version 1.2.0 --build-number 2026082501 --dry-run
 bundle exec asc-tooling version create --bundle-id com.example.app --version 1.2.0 --platform ios --dry-run
 bundle exec asc-tooling availability status --bundle-id com.example.app
 ```
@@ -115,6 +119,8 @@ bundle exec asc-tooling init --print
 
 ```bash
 ./exe/asc-review status --bundle-id com.example.app
+./exe/asc-review status --bundle-id com.example.app --app-version 1.2.0 --items
+./exe/asc-review attach-build --bundle-id com.example.app --app-version 1.2.0 --build-number 2026082501 --dry-run
 ./exe/asc-review withdraw --bundle-id com.example.app --app-version 1.2.0 --dry-run
 ./exe/asc-metadata status --bundle-id com.example.app --locale en-US
 ./exe/asc-beta status --bundle-id com.example.app
@@ -129,6 +135,17 @@ bundle exec asc-tooling init --print
 `asc-metadata status` 和 `asc-screenshots status` 可以通过 `--app-version`
 读取指定的可编辑或已上架版本；对应的写入命令 `asc-metadata apply` 和
 `asc-screenshots upload` 仍然只允许操作可编辑的 App Store 版本。
+
+`asc-review attach-build` 会把一个同时满足 `VALID` 和
+`APP_STORE_ELIGIBLE` 的构建显式关联到可编辑版本，并在写入后回读验证。
+`asc-review submit --build-number ...` 仍保留“关联指定构建并立即提审”的
+单命令路径。给 `asc-review status` 增加 `--items` 可以回读每个 review
+submission 中的 App 版本和 IAP 版本项目。
+
+`asc-iap status` 会标记首个 IAP 是否仍需要 App Store Connect 网页联合
+提交；`asc-iap submit` 会在任何提交写入前执行该预检。首个 IAP 仍需在
+网页中随 App 版本提交，之后处于 `READY_TO_SUBMIT` 的 IAP 可以直接使用
+CLI 提交。
 
 更完整的使用说明和发布流程见 [docs/release-and-usage.md](docs/release-and-usage.md)。
 

@@ -1,14 +1,16 @@
 require_relative "test_helper"
 
 class ASCToolingReviewTest < Minitest::Test
-  FakeVersion = Struct.new(:id, :version_string, :app_store_state, keyword_init: true)
+  FakeBuild = Struct.new(:id, :version, :processing_state, keyword_init: true)
+  FakeVersion = Struct.new(:id, :version_string, :app_store_state, :build, :release_type, keyword_init: true)
 
   class FakeClient
     attr_reader :deleted_resources, :find_version_calls, :requests
 
-    def initialize(app:, versions:)
+    def initialize(app:, versions:, builds: [])
       @app = app
       @versions = versions.dup
+      @builds = builds
       @deleted_resources = []
       @find_version_calls = []
       @requests = []
@@ -31,6 +33,26 @@ class ASCToolingReviewTest < Minitest::Test
       @versions.shift || raise("no fake version queued")
     end
 
+    def find_editable_version!(app, platform:, app_version: nil)
+      find_version!(app, platform: platform, app_version: app_version, states: ASCTooling::Client::EDITABLE_STATES)
+    end
+
+    def find_build_by_number(_app_id, _app_version, build_number, platform:)
+      raise "unexpected platform #{platform}" unless platform == "MAC_OS"
+
+      @builds.find { |build| build.dig("attributes", "version") == build_number }
+    end
+
+    def find_latest_eligible_build(_app_id, _app_version, platform:)
+      raise "unexpected platform #{platform}" unless platform == "MAC_OS"
+
+      @builds.find do |build|
+        attributes = build.fetch("attributes", {})
+        attributes["processingState"] == "VALID" &&
+          attributes["buildAudienceType"] == "APP_STORE_ELIGIBLE"
+      end
+    end
+
     def request_json(method, path, params: nil, body: nil)
       @requests << {
         method: method,
@@ -39,6 +61,14 @@ class ASCToolingReviewTest < Minitest::Test
         body: body
       }
       { "data" => { "id" => "release-request-123" } }
+    end
+
+    def paginated_document(path, limit:, params: {})
+      request_json(
+        "GET",
+        path,
+        params: params.merge("limit" => limit.to_s)
+      )
     end
 
     def delete_resource(path)
@@ -179,7 +209,265 @@ class ASCToolingReviewTest < Minitest::Test
     assert_includes stdout, "Version 1.2.0 is READY_FOR_SALE; nothing to withdraw"
   end
 
+  def test_attach_build_links_selected_valid_build_and_verifies_read_back
+    app = OpenStruct.new(id: "app-123")
+    selected_build = {
+      "id" => "build-123",
+      "attributes" => {
+        "version" => "2026082501",
+        "processingState" => "VALID",
+        "buildAudienceType" => "APP_STORE_ELIGIBLE"
+      }
+    }
+    client = FakeClient.new(
+      app: app,
+      versions: [
+        FakeVersion.new(id: "version-123", version_string: "1.3.0", app_store_state: "PREPARE_FOR_SUBMISSION"),
+        FakeVersion.new(
+          id: "version-123",
+          version_string: "1.3.0",
+          app_store_state: "PREPARE_FOR_SUBMISSION",
+          build: FakeBuild.new(id: "build-123", version: "2026082501", processing_state: "VALID")
+        )
+      ],
+      builds: [selected_build]
+    )
+    review = build_review(client, app_version: "1.3.0", build_number: "2026082501")
+
+    stdout, = capture_io do
+      review.send(:attach_build)
+    end
+
+    assert_equal 2, client.find_version_calls.length
+    assert_equal 1, client.requests.length
+    assert_equal "PATCH", client.requests.first[:method]
+    assert_equal "/v1/appStoreVersions/version-123/relationships/build", client.requests.first[:path]
+    assert_equal(
+      { data: { type: "builds", id: "build-123" } },
+      client.requests.first[:body]
+    )
+    assert_includes stdout, "Attached build 2026082501 to version 1.3.0"
+  end
+
+  def test_attach_build_dry_run_does_not_mutate
+    app = OpenStruct.new(id: "app-123")
+    build = {
+      "id" => "build-123",
+      "attributes" => {
+        "version" => "2026082501",
+        "processingState" => "VALID",
+        "buildAudienceType" => "APP_STORE_ELIGIBLE"
+      }
+    }
+    client = FakeClient.new(
+      app: app,
+      versions: [FakeVersion.new(id: "version-123", version_string: "1.3.0", app_store_state: "PREPARE_FOR_SUBMISSION")],
+      builds: [build]
+    )
+    review = build_review(client, app_version: "1.3.0", build_number: "2026082501", dry_run: true)
+
+    stdout, = capture_io do
+      review.send(:attach_build)
+    end
+
+    assert_empty client.requests
+    assert_includes stdout, "Dry run: would attach build 2026082501 to version 1.3.0."
+  end
+
+  def test_find_target_build_rejects_selected_ineligible_build
+    app = OpenStruct.new(id: "app-123")
+    build = {
+      "id" => "build-123",
+      "attributes" => {
+        "version" => "2026082501",
+        "processingState" => "PROCESSING",
+        "buildAudienceType" => "APP_STORE_ELIGIBLE"
+      }
+    }
+    client = FakeClient.new(app: app, versions: [], builds: [build])
+    review = build_review(client, app_version: "1.3.0", build_number: "2026082501")
+
+    error = assert_raises(OptionParser::InvalidArgument) do
+      review.send(:find_target_build!, app.id, "1.3.0")
+    end
+
+    assert_includes error.message, "not VALID and APP_STORE_ELIGIBLE"
+  end
+
+  def test_find_target_build_uses_platform_scoped_eligible_lookup_when_number_is_omitted
+    eligible_build = {
+      "id" => "build-eligible",
+      "attributes" => {
+        "version" => "2026082501",
+        "processingState" => "VALID",
+        "buildAudienceType" => "APP_STORE_ELIGIBLE"
+      }
+    }
+    client = FakeClient.new(
+      app: OpenStruct.new(id: "app-123"),
+      versions: [],
+      builds: [eligible_build]
+    )
+    review = build_review(client, app_version: "1.3.0")
+
+    selected = review.send(:find_target_build!, "app-123", "1.3.0")
+
+    assert_equal "build-eligible", selected["id"]
+  end
+
+  def test_review_submission_items_reports_app_and_iap_version_linkages
+    client = FakeClient.new(app: OpenStruct.new(id: "app-123"), versions: [])
+    client.define_singleton_method(:request_json) do |method, path, params: nil, body: nil|
+      @requests << { method: method, path: path, params: params, body: body }
+      {
+        "data" => [
+          {
+            "type" => "reviewSubmissionItems",
+            "id" => "item-app",
+            "attributes" => { "state" => "READY_FOR_REVIEW" },
+            "relationships" => {
+              "appStoreVersion" => { "data" => { "type" => "appStoreVersions", "id" => "version-123" } }
+            }
+          },
+          {
+            "type" => "reviewSubmissionItems",
+            "id" => "item-iap",
+            "attributes" => { "state" => "READY_FOR_REVIEW" },
+            "relationships" => {
+              "inAppPurchaseVersion" => { "data" => { "type" => "inAppPurchaseVersions", "id" => "iap-version-123" } }
+            }
+          }
+        ],
+        "included" => [
+          {
+            "type" => "appStoreVersions",
+            "id" => "version-123",
+            "attributes" => { "versionString" => "1.3.0" }
+          },
+          {
+            "type" => "inAppPurchaseVersions",
+            "id" => "iap-version-123",
+            "attributes" => { "version" => 1, "state" => "READY_FOR_REVIEW" }
+          }
+        ]
+      }
+    end
+    review = build_review(client)
+
+    items = review.send(:review_submission_items, "submission-123")
+
+    assert_equal 2, items.length
+    assert_equal "appStoreVersion", items.first[:relationship]
+    assert_equal "1.3.0", items.first[:version]
+    assert_equal "inAppPurchaseVersion", items.last[:relationship]
+    assert_equal 1, items.last[:version]
+    assert_equal(
+      "inAppPurchaseVersion iap-version-123 (version 1) [READY_FOR_REVIEW]",
+      review.send(:review_submission_item_label, items.last)
+    )
+    assert_equal(
+      "appStoreVersion,inAppPurchaseVersion",
+      client.requests.first[:params]["include"]
+    )
+  end
+
+  def test_attach_build_requires_explicit_app_version
+    _, stderr = capture_io do
+      result = ASCTooling::Review.run(["attach-build", "--bundle-id", "com.example.app"])
+      assert_equal 1, result
+    end
+
+    assert_includes stderr, "--app-version is required for attach-build"
+  end
+
+  def test_submit_attaches_selected_build_and_immediately_submits_draft
+    app = OpenStruct.new(id: "app-123")
+    selected_build = {
+      "id" => "build-123",
+      "attributes" => {
+        "version" => "2026082501",
+        "processingState" => "VALID",
+        "buildAudienceType" => "APP_STORE_ELIGIBLE"
+      }
+    }
+    client = FakeClient.new(
+      app: app,
+      versions: [
+        FakeVersion.new(
+          id: "version-123",
+          version_string: "1.3.0",
+          app_store_state: "PREPARE_FOR_SUBMISSION",
+          release_type: "MANUAL"
+        ),
+        FakeVersion.new(
+          id: "version-123",
+          version_string: "1.3.0",
+          app_store_state: "PREPARE_FOR_SUBMISSION",
+          release_type: "MANUAL",
+          build: FakeBuild.new(id: "build-123", version: "2026082501", processing_state: "VALID")
+        )
+      ],
+      builds: [selected_build]
+    )
+    configure_submit_requests(client)
+    review = build_review(
+      client,
+      app_version: "1.3.0",
+      build_number: "2026082501"
+    )
+
+    stdout, = capture_io do
+      review.send(:submit_for_review)
+    end
+
+    assert_equal(
+      [
+        ["GET", "/v1/reviewSubmissions"],
+        ["PATCH", "/v1/appStoreVersions/version-123/relationships/build"],
+        ["GET", "/v1/reviewSubmissions"],
+        ["GET", "/v1/reviewSubmissions/submission-123/items"],
+        ["POST", "/v1/reviewSubmissionItems"],
+        ["PATCH", "/v1/reviewSubmissions/submission-123"]
+      ],
+      client.requests.map { |request| [request[:method], request[:path]] }
+    )
+    assert_includes stdout, "Submitted 1.3.0 (2026082501)"
+    assert_includes stdout, "Review submission submission-123 is now WAITING_FOR_REVIEW"
+  end
+
   private
+
+  def configure_submit_requests(client)
+    client.define_singleton_method(:request_json) do |method, path, params: nil, body: nil|
+      @requests << { method: method, path: path, params: params, body: body }
+      case [method, path]
+      when ["GET", "/v1/reviewSubmissions"]
+        {
+          "data" => [
+            {
+              "id" => "submission-123",
+              "attributes" => { "state" => "READY_FOR_REVIEW" }
+            }
+          ]
+        }
+      when ["GET", "/v1/reviewSubmissions/submission-123/items"]
+        { "data" => [], "included" => [] }
+      when ["POST", "/v1/reviewSubmissionItems"]
+        { "data" => { "id" => "item-123" } }
+      when ["PATCH", "/v1/reviewSubmissions/submission-123"]
+        {
+          "data" => {
+            "id" => "submission-123",
+            "attributes" => { "state" => "WAITING_FOR_REVIEW" }
+          }
+        }
+      when ["PATCH", "/v1/appStoreVersions/version-123/relationships/build"]
+        { "data" => { "type" => "builds", "id" => "build-123" } }
+      else
+        raise "unexpected request: #{method} #{path}"
+      end
+    end
+  end
 
   def build_review(client, options = {})
     review = ASCTooling::Review.allocate

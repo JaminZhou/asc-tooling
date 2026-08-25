@@ -19,6 +19,8 @@ module ASCTooling
   end
 
   class Client
+    include Pagination
+
     KEY_ID_ENV_NAMES = %w[
       ASC_KEY_ID
       APP_STORE_CONNECT_API_KEY_KEY_ID
@@ -272,6 +274,38 @@ module ASCTooling
       params["filter[preReleaseVersion.version]"] = app_version unless self.class.blank?(app_version)
 
       request_json("GET", "/v1/builds", params: params).fetch("data", [])
+    end
+
+    def find_build_by_number(app_id, app_version, build_number, platform:)
+      request_json(
+        "GET",
+        "/v1/builds",
+        params: {
+          "filter[app]" => app_id,
+          "filter[preReleaseVersion.version]" => app_version,
+          "filter[preReleaseVersion.platform]" => platform,
+          "filter[version]" => build_number,
+          "limit" => "1"
+        }
+      ).fetch("data", []).find do |build|
+        build.dig("attributes", "version") == build_number
+      end
+    end
+
+    def find_latest_eligible_build(app_id, app_version, platform:)
+      request_json(
+        "GET",
+        "/v1/builds",
+        params: {
+          "filter[app]" => app_id,
+          "filter[preReleaseVersion.version]" => app_version,
+          "filter[preReleaseVersion.platform]" => platform,
+          "filter[processingState]" => "VALID",
+          "filter[buildAudienceType]" => "APP_STORE_ELIGIBLE",
+          "sort" => "-uploadedDate",
+          "limit" => "1"
+        }
+      ).fetch("data", []).first
     end
 
     def update_resource(type, id, attributes:)

@@ -8,6 +8,42 @@ for product repositories that consume `asc_tooling`.
 
 ## Unreleased
 
+### Added
+
+- Added `asc-review attach-build` for explicitly linking a selected valid,
+  App Store-eligible build to an editable App Store version, with dry-run and
+  post-mutation read-back verification.
+- Added `asc-review status --items` to include App Store version and in-app
+  purchase version items for each review submission in text or JSON output.
+
+### Changed
+
+- Added an IAP status signal and preflight guard for the app's first IAP so
+  `asc-iap submit` stops before mutation when Apple requires the App Store
+  Connect web UI joint-submission flow.
+- Restricted explicit review build selection to builds that are both `VALID`
+  and `APP_STORE_ELIGIBLE`.
+
+### Fixed
+
+- Followed App Store Connect pagination before applying the app-wide first-IAP
+  guard, so historical reviewed products beyond the first 200 remain visible.
+- Queried explicitly selected builds by build number instead of limiting the
+  search to the 20 newest uploads.
+- Included the IAP version resource ID in text review-item labels so multiple
+  version-1 products remain distinguishable.
+- Followed every review-submission item page and merged included resources so
+  `status --items` does not silently stop after 50 items.
+- Scoped explicit build-number lookup to the selected platform for
+  multi-platform apps.
+- Moved implicit latest-build selection to a platform-scoped server-side query
+  for `VALID`, `APP_STORE_ELIGIBLE` builds, avoiding the previous newest-20
+  client-side search limit.
+- Treated a first IAP already submitted for review as satisfying the required
+  web joint-submission step, including rejected and developer-action states,
+  while narrowing fallback error matching to explicit first-IAP and
+  app-version wording.
+
 ## 0.10.0 - 2026-07-22
 
 ### Added

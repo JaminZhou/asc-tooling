@@ -1,5 +1,6 @@
 require_relative "asc_tooling/version"
 require_relative "asc_tooling/models"
+require_relative "asc_tooling/pagination"
 require_relative "asc_tooling/client"
 require_relative "asc_tooling/review"
 require_relative "asc_tooling/metadata"

@@ -355,6 +355,129 @@ class ASCToolingClientTest < Minitest::Test
     refute payloads.first[:params].key?("filter[preReleaseVersion.version]")
   end
 
+  def test_find_build_by_number_uses_server_side_build_filter
+    client = ASCTooling::Client.allocate
+    captured = nil
+    client.define_singleton_method(:request_json) do |method, path, params: nil, body: nil|
+      captured = { method: method, path: path, params: params, body: body }
+      {
+        "data" => [
+          {
+            "id" => "build-123",
+            "attributes" => { "version" => "2026082501" }
+          }
+        ]
+      }
+    end
+
+    build = client.find_build_by_number("app-123", "1.3.0", "2026082501", platform: "IOS")
+
+    assert_equal "build-123", build["id"]
+    assert_equal "GET", captured[:method]
+    assert_equal "/v1/builds", captured[:path]
+    assert_equal "app-123", captured[:params]["filter[app]"]
+    assert_equal "1.3.0", captured[:params]["filter[preReleaseVersion.version]"]
+    assert_equal "IOS", captured[:params]["filter[preReleaseVersion.platform]"]
+    assert_equal "2026082501", captured[:params]["filter[version]"]
+    assert_equal "1", captured[:params]["limit"]
+  end
+
+  def test_find_latest_eligible_build_uses_server_side_platform_and_state_filters
+    client = ASCTooling::Client.allocate
+    captured = nil
+    client.define_singleton_method(:request_json) do |method, path, params: nil, body: nil|
+      captured = { method: method, path: path, params: params, body: body }
+      {
+        "data" => [
+          {
+            "id" => "build-eligible",
+            "attributes" => { "version" => "2026082501" }
+          }
+        ]
+      }
+    end
+
+    build = client.find_latest_eligible_build("app-123", "1.3.0", platform: "IOS")
+
+    assert_equal "build-eligible", build["id"]
+    assert_equal "GET", captured[:method]
+    assert_equal "/v1/builds", captured[:path]
+    assert_equal "app-123", captured[:params]["filter[app]"]
+    assert_equal "1.3.0", captured[:params]["filter[preReleaseVersion.version]"]
+    assert_equal "IOS", captured[:params]["filter[preReleaseVersion.platform]"]
+    assert_equal "VALID", captured[:params]["filter[processingState]"]
+    assert_equal "APP_STORE_ELIGIBLE", captured[:params]["filter[buildAudienceType]"]
+    assert_equal "-uploadedDate", captured[:params]["sort"]
+    assert_equal "1", captured[:params]["limit"]
+  end
+
+  def test_paginated_resources_follows_next_link_until_exhausted
+    client = ASCTooling::Client.allocate
+    requests = []
+    client.define_singleton_method(:request_json) do |method, path, params: nil, body: nil|
+      requests << { method: method, path: path, params: params, body: body }
+      if params["cursor"] == "next-page"
+        { "data" => [{ "id" => "iap-201" }], "links" => {} }
+      else
+        {
+          "data" => [{ "id" => "iap-1" }],
+          "links" => {
+            "next" => "https://api.appstoreconnect.apple.com/v1/apps/app-123/inAppPurchasesV2?cursor=next-page&limit=200"
+          }
+        }
+      end
+    end
+
+    resources = client.paginated_resources(
+      "/v1/apps/app-123/inAppPurchasesV2",
+      params: { "filter[state]" => "READY_TO_SUBMIT" },
+      limit: 200
+    )
+
+    resource_ids = resources.map { |resource| resource["id"] }
+    assert_equal %w[iap-1 iap-201], resource_ids
+    assert_equal 2, requests.length
+    assert_equal "READY_TO_SUBMIT", requests.first[:params]["filter[state]"]
+    assert_equal "200", requests.first[:params]["limit"]
+    assert_equal "next-page", requests.last[:params]["cursor"]
+    assert_equal "200", requests.last[:params]["limit"]
+  end
+
+  def test_paginated_document_merges_data_and_deduplicates_included_resources
+    client = ASCTooling::Client.allocate
+    client.define_singleton_method(:request_json) do |_method, _path, params: nil, body: nil|
+      if params["cursor"] == "next-page"
+        {
+          "data" => [{ "id" => "item-51" }],
+          "included" => [
+            { "type" => "inAppPurchaseVersions", "id" => "iap-version-1" },
+            { "type" => "appStoreVersions", "id" => "app-version-1" }
+          ]
+        }
+      else
+        {
+          "data" => [{ "id" => "item-1" }],
+          "included" => [{ "type" => "inAppPurchaseVersions", "id" => "iap-version-1" }],
+          "links" => {
+            "next" => "https://api.appstoreconnect.apple.com/v1/reviewSubmissions/submission-1/items?cursor=next-page&limit=50"
+          }
+        }
+      end
+    end
+
+    document = client.paginated_document(
+      "/v1/reviewSubmissions/submission-1/items",
+      params: { "include" => "appStoreVersion,inAppPurchaseVersion" },
+      limit: 50
+    )
+
+    item_ids = document["data"].map { |item| item["id"] }
+    assert_equal %w[item-1 item-51], item_ids
+    assert_equal 2, document["included"].length
+    included_ids = document["included"].map { |resource| resource["id"] }
+    assert_equal %w[iap-version-1 app-version-1], included_ids
+  end
+
   def test_camelize_keys_converts_snake_case
     client = ASCTooling::Client.allocate
     result = client.send(:camelize_keys, {
