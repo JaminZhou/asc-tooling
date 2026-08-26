@@ -79,6 +79,18 @@ export ASC_KEY_PATH=~/.config/appstoreconnect/AuthKey_XXXX.p8
 4. Summarize the command run, inputs used, source of truth, and any App Store Connect web UI confirmation still required.
 5. Never save secrets or browser session exports into the repository.
 
+## Toolkit Release Closeout
+
+When releasing `asc_tooling` itself, follow the Release Flow and Post-Release
+SOP in `docs/release-and-usage.md`. Do not stop after publishing the tag:
+
+1. Verify the GitHub release, release notes, and gem asset.
+2. Install the released gem as the machine-level CLI and verify its exact
+   version through the generated executable.
+3. Refresh and compare the Codex, Agent, and Claude skill installations.
+4. Discover consumers through Makefile version declarations, not only
+   Gemfiles, and record any lagging consumer.
+
 ## Skill Installation
 
 Install or update this skill through the bundled CLI:

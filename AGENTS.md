@@ -11,6 +11,7 @@
 - This repository contains reusable App Store Connect tooling, not product-specific release state.
 - Product-specific screenshot generation, review notes, metadata files, App Store Connect keys, and release decisions belong in consuming product repositories.
 - The supported surface is the JWT-based CLI command set plus the bundled `asc-tooling` skill installer.
+- Product repositories consume one machine-level `asc-tooling` CLI/gem and enforce product-local minimum versions; do not reintroduce per-product Gemfile pins.
 - `experimental/` helpers are local-only and unsupported public interfaces.
 
 ## Security Boundaries
@@ -51,3 +52,4 @@ ruby -S bundle _4.0.11_ exec rubocop
 - Tags use `vX.Y.Z`.
 - The release workflow builds a gem artifact and creates a GitHub release for `vX.Y.Z` tags.
 - GitHub releases should summarize command-surface changes and any consumer migration notes.
+- A tag and GitHub release are not the end of rollout. Follow the Post-Release SOP to update and verify the machine-level CLI, refresh installed skills, inventory Makefile consumers, and record lagging consumers.

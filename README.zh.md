@@ -59,23 +59,30 @@
 
 当前项目通过 GitHub tag 分发，而不是 RubyGems。
 
-在产品仓库的 `Gemfile` 中引用：
-
-```ruby
-gem "asc_tooling",
-  git: "https://github.com/JaminZhou/asc-tooling.git",
-  tag: "v0.11.0"
-```
-
-然后通过 Bundler 使用：
+将 Release 中的 gem 一次性安装为机器级 CLI。产品仓库应调用这份全局安装，
+不再各自维护 `Gemfile` pin：
 
 ```bash
-bundle install
-bundle exec asc-tooling commands
-bundle exec asc-tooling review status --bundle-id com.example.app
-bundle exec asc-review status --bundle-id com.example.app
-bundle exec asc-review release --bundle-id com.example.app --app-version 1.2.0
+release_tag=v0.11.0
+release_version=${release_tag#v}
+release_download_dir=$(mktemp -d)
+release_gem="$release_download_dir/asc_tooling-${release_version}.gem"
+
+curl --fail --location \
+  --output "$release_gem" \
+  "https://github.com/JaminZhou/asc-tooling/releases/download/${release_tag}/asc_tooling-${release_version}.gem"
+gem install --user-install --bindir "$HOME/.local/bin" --no-document \
+  "$release_gem"
+rm "$release_gem"
+rmdir "$release_download_dir"
+
+"$HOME/.local/bin/asc-tooling" --version
+"$HOME/.local/bin/asc-tooling" commands
 ```
+
+请把 `$HOME/.local/bin` 放入 `PATH`，或让产品自动化直接调用绝对路径。
+完整的发布后安装与消费方核验步骤见
+[Release And Usage](docs/release-and-usage.md#post-release-sop)。
 
 从本地 checkout 调试工具本身：
 
@@ -92,22 +99,22 @@ bundle install
 `asc-review status --items` 需要 `v0.11.0` 或更新版本。
 
 ```bash
-bundle exec asc-tooling commands
-bundle exec asc-tooling --version
-bundle exec asc-tooling review status --bundle-id com.example.app
-bundle exec asc-tooling review status --bundle-id com.example.app --app-version 1.2.0 --items
-bundle exec asc-tooling review attach-build --bundle-id com.example.app --app-version 1.2.0 --build-number 2026082501 --dry-run
-bundle exec asc-tooling version create --bundle-id com.example.app --version 1.2.0 --platform ios --dry-run
-bundle exec asc-tooling availability status --bundle-id com.example.app
+asc-tooling commands
+asc-tooling --version
+asc-tooling review status --bundle-id com.example.app
+asc-tooling review status --bundle-id com.example.app --app-version 1.2.0 --items
+asc-tooling review attach-build --bundle-id com.example.app --app-version 1.2.0 --build-number 2026082501 --dry-run
+asc-tooling version create --bundle-id com.example.app --version 1.2.0 --platform ios --dry-run
+asc-tooling availability status --bundle-id com.example.app
 ```
 
 安装内置 skill：
 
 ```bash
-bundle exec asc-tooling init --client codex --force    # $CODEX_HOME/skills，或 ~/.codex/skills
-bundle exec asc-tooling init --client agents --force   # ~/.agents/skills
-bundle exec asc-tooling init --client claude --force   # $CLAUDE_CONFIG_DIR/skills，或 ~/.claude/skills
-bundle exec asc-tooling init --print
+asc-tooling init --client codex --force    # $CODEX_HOME/skills，或 ~/.codex/skills
+asc-tooling init --client agents --force   # ~/.agents/skills
+asc-tooling init --client claude --force   # $CLAUDE_CONFIG_DIR/skills，或 ~/.claude/skills
+asc-tooling init --print
 ```
 
 `--client codex` 使用 Codex 自身的 `CODEX_HOME` 约定；`--client agents`
@@ -117,18 +124,18 @@ bundle exec asc-tooling init --print
 旧的可执行命令仍然保留，方便现有脚本继续使用：
 
 ```bash
-./exe/asc-review status --bundle-id com.example.app
-./exe/asc-review status --bundle-id com.example.app --app-version 1.2.0 --items
-./exe/asc-review attach-build --bundle-id com.example.app --app-version 1.2.0 --build-number 2026082501 --dry-run
-./exe/asc-review withdraw --bundle-id com.example.app --app-version 1.2.0 --dry-run
-./exe/asc-metadata status --bundle-id com.example.app --locale en-US
-./exe/asc-beta status --bundle-id com.example.app
-./exe/asc-sales units --bundle-id com.example.app --vendor-number 12345678 --report-date 2026-04-10
-./exe/asc-screenshots status --bundle-id com.example.app --locale en-US --display-type APP_DESKTOP
-./exe/asc-iap status --bundle-id com.example.app
-./exe/asc-version create --bundle-id com.example.app --version 1.2.0 --platform ios --dry-run
-./exe/asc-availability status --bundle-id com.example.app
-./exe/asc-store-setup status --bundle-id com.example.app --app-version 1.0.0 --platform ios
+asc-review status --bundle-id com.example.app
+asc-review status --bundle-id com.example.app --app-version 1.2.0 --items
+asc-review attach-build --bundle-id com.example.app --app-version 1.2.0 --build-number 2026082501 --dry-run
+asc-review withdraw --bundle-id com.example.app --app-version 1.2.0 --dry-run
+asc-metadata status --bundle-id com.example.app --locale en-US
+asc-beta status --bundle-id com.example.app
+asc-sales units --bundle-id com.example.app --vendor-number 12345678 --report-date 2026-04-10
+asc-screenshots status --bundle-id com.example.app --locale en-US --display-type APP_DESKTOP
+asc-iap status --bundle-id com.example.app
+asc-version create --bundle-id com.example.app --version 1.2.0 --platform ios --dry-run
+asc-availability status --bundle-id com.example.app
+asc-store-setup status --bundle-id com.example.app --app-version 1.0.0 --platform ios
 ```
 
 `asc-metadata status` 和 `asc-screenshots status` 可以通过 `--app-version`

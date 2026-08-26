@@ -13,14 +13,17 @@ export ASC_VENDOR_NUMBER=YOUR_VENDOR_NUMBER
 
 ## Commands
 
+The examples below assume the machine-level CLI has been installed using the
+current tagged release as documented in the README.
+
 `asc-tooling` is the preferred unified entrypoint:
 
 ```bash
-bundle exec asc-tooling commands
-bundle exec asc-tooling --version
-bundle exec asc-tooling review status --bundle-id com.example.app --json
-bundle exec asc-tooling version create --bundle-id com.example.app --version 1.2.0 --platform ios --dry-run
-bundle exec asc-tooling init --client codex --force
+asc-tooling commands
+asc-tooling --version
+asc-tooling review status --bundle-id com.example.app --json
+asc-tooling version create --bundle-id com.example.app --version 1.2.0 --platform ios --dry-run
+asc-tooling init --client codex --force
 ```
 
 The focused executable names below remain supported for existing scripts.
@@ -28,20 +31,20 @@ The focused executable names below remain supported for existing scripts.
 ### Review
 
 ```bash
-bundle exec asc-review status --bundle-id com.example.app --json
-bundle exec asc-review status --bundle-id com.example.app --app-version 1.2.0 --items
-bundle exec asc-review attach-build \
+asc-review status --bundle-id com.example.app --json
+asc-review status --bundle-id com.example.app --app-version 1.2.0 --items
+asc-review attach-build \
   --bundle-id com.example.app \
   --app-version 1.2.0 \
   --build-number 2026082501 \
   --dry-run
-bundle exec asc-review submit \
+asc-review submit \
   --bundle-id com.example.app \
   --app-version 1.2.0 \
   --build-number 2026082501 \
   --release-type manual
-bundle exec asc-review release --bundle-id com.example.app --app-version 1.2.0
-bundle exec asc-review withdraw --bundle-id com.example.app --app-version 1.2.0
+asc-review release --bundle-id com.example.app --app-version 1.2.0
+asc-review withdraw --bundle-id com.example.app --app-version 1.2.0
 ```
 
 `asc-review release` sends the manual release request for a version in
@@ -68,7 +71,7 @@ withdrawal App Store Connect normally reports the version as
 ### App Version
 
 ```bash
-bundle exec asc-version create \
+asc-version create \
   --bundle-id com.example.app \
   --version 1.2.0 \
   --platform ios \
@@ -82,11 +85,11 @@ review.
 ### Metadata
 
 ```bash
-bundle exec asc-metadata status \
+asc-metadata status \
   --bundle-id com.example.app \
   --app-version 1.2.0 \
   --locale en-US
-bundle exec asc-metadata apply \
+asc-metadata apply \
   --bundle-id com.example.app \
   --locale en-US \
   --subtitle "Calm wake control for Mac"
@@ -98,14 +101,14 @@ Store state. `apply` remains restricted to editable versions.
 ### Store Setup
 
 ```bash
-bundle exec asc-store-setup status \
+asc-store-setup status \
   --bundle-id com.example.app \
   --app-version 1.0.0 \
   --platform ios \
   --primary-category SHOPPING \
   --age-rating-template 4-plus
 
-bundle exec asc-store-setup apply \
+asc-store-setup apply \
   --bundle-id com.example.app \
   --app-version 1.0.0 \
   --platform ios \
@@ -135,9 +138,9 @@ already exists.
 ### Availability
 
 ```bash
-bundle exec asc-availability status --bundle-id com.example.app
+asc-availability status --bundle-id com.example.app
 
-bundle exec asc-availability apply \
+asc-availability apply \
   --bundle-id com.example.app \
   --all-territories \
   --available-in-new-territories \
@@ -153,13 +156,13 @@ the product should not auto-enable new territories.
 ### Screenshots
 
 ```bash
-bundle exec asc-screenshots status \
+asc-screenshots status \
   --bundle-id com.example.app \
   --app-version 1.2.0 \
   --locale en-US \
   --display-type APP_DESKTOP
 
-bundle exec asc-screenshots upload \
+asc-screenshots upload \
   --bundle-id com.example.app \
   --locale en-US \
   --display-type APP_DESKTOP \
@@ -173,13 +176,13 @@ versions.
 ### In-App Purchases
 
 ```bash
-bundle exec asc-iap status --bundle-id com.example.app
+asc-iap status --bundle-id com.example.app
 
-bundle exec asc-iap prepare \
+asc-iap prepare \
   --bundle-id com.example.app \
   --review-screenshot build/review-screenshots/iap-review-support-ui.png
 
-bundle exec asc-iap submit \
+asc-iap submit \
   --bundle-id com.example.app \
   --product-id com.example.app.tip.small
 ```
@@ -194,21 +197,21 @@ approved IAP, products in `READY_TO_SUBMIT` can use direct CLI submission.
 ### Beta
 
 ```bash
-bundle exec asc-beta status --bundle-id com.example.app
+asc-beta status --bundle-id com.example.app
 
-bundle exec asc-beta add-build \
+asc-beta add-build \
   --bundle-id com.example.app \
   --group-name Internal \
   --build-number 202603221408 \
   --dry-run
 
-bundle exec asc-beta add-tester \
+asc-beta add-tester \
   --bundle-id com.example.app \
   --group-name Internal \
   --email tester@example.com \
   --dry-run
 
-bundle exec asc-beta add-tester \
+asc-beta add-tester \
   --bundle-id com.example.app \
   --group-name Internal \
   --email tester@example.com \
@@ -217,7 +220,7 @@ bundle exec asc-beta add-tester \
   --create-if-missing \
   --dry-run
 
-bundle exec asc-beta remove-tester \
+asc-beta remove-tester \
   --bundle-id com.example.app \
   --group-name Internal \
   --email tester@example.com \
@@ -227,12 +230,12 @@ bundle exec asc-beta remove-tester \
 ### Sales
 
 ```bash
-bundle exec asc-sales report \
+asc-sales report \
   --vendor-number 12345678 \
   --report-date 2026-04-10 \
   --output build/sales-2026-04-10.tsv
 
-bundle exec asc-sales units \
+asc-sales units \
   --bundle-id com.example.app \
   --vendor-number 12345678 \
   --report-date 2026-04-10 \
@@ -260,39 +263,130 @@ git push origin v0.11.0
 ```
 
 5. Let the Release workflow build the gem artifact and create the GitHub
-   release. If manual fallback is needed:
+   release. If manual fallback is needed, authenticate GitHub CLI, build the
+   same gem artifact locally, and attach it while creating the release:
 
 ```bash
-gh release create v0.11.0 --generate-notes
+release_tag=v0.11.0
+release_version=${release_tag#v}
+
+gh auth status --hostname github.com
+gem build asc_tooling.gemspec
+gh release create "$release_tag" \
+  "asc_tooling-${release_version}.gem" \
+  --generate-notes
 ```
+
+6. Verify that the published release is not a draft or prerelease, contains
+   the expected `asc_tooling-X.Y.Z.gem` asset, and summarizes command-surface
+   changes plus any consumer migration requirements. Generated PR titles alone
+   are not sufficient release notes.
 
 ## Post-Release SOP
 
-After the tag and GitHub release are live, update each local product
-repository that consumes `asc_tooling`.
+Publishing the tag and GitHub release does not complete rollout. The supported
+product-consumption model is one machine-level `asc-tooling` CLI/gem plus
+product-local minimum-version checks. Product repositories should not add an
+`asc_tooling` Gemfile pin.
 
-### Find Local Consumers
+### Install And Verify The Machine-Level CLI
 
-Before each release, rescan `~/Developer` instead of maintaining a static
-consumer list:
+Download the released gem asset before installing it. Passing the GitHub URL
+directly to `gem install` is not supported by every RubyGems version.
 
 ```bash
-rg -l --glob 'Gemfile' "gem ['\"]asc_tooling['\"]" ~/Developer | xargs -n1 dirname
+release_tag=v0.11.0
+release_version=${release_tag#v}
+release_download_dir=$(mktemp -d)
+release_gem="$release_download_dir/asc_tooling-${release_version}.gem"
+machine_cli="$HOME/.local/bin/asc-tooling"
+
+gh auth status --hostname github.com
+gh release view "$release_tag" \
+  --repo JaminZhou/asc-tooling \
+  --json tagName,isDraft,isPrerelease,publishedAt,url,assets
+curl --fail --location \
+  --output "$release_gem" \
+  "https://github.com/JaminZhou/asc-tooling/releases/download/${release_tag}/asc_tooling-${release_version}.gem"
+
+gem install --user-install --bindir "$HOME/.local/bin" --no-document \
+  "$release_gem"
+test "$("$machine_cli" --version)" = "$release_version"
+"$machine_cli" commands >/dev/null
+
+rm "$release_gem"
+rmdir "$release_download_dir"
 ```
 
-This keeps the rollout checklist current when new product repositories are
-added later.
+If product automation does not inherit `$HOME/.local/bin` on `PATH`, invoke
+`$HOME/.local/bin/asc-tooling` explicitly. Use the same Ruby installation for
+the gem and generated executable; a version check performed by another Ruby is
+not proof that the machine CLI was upgraded.
+
+### Refresh And Verify Installed Skills
+
+Refresh every supported skill destination from the newly installed gem, then
+compare each installed `SKILL.md` with the bundled source:
+
+```bash
+machine_cli="$HOME/.local/bin/asc-tooling"
+skill_reference=$(mktemp)
+codex_root=${CODEX_HOME:-$HOME/.codex}
+claude_root=${CLAUDE_CONFIG_DIR:-$HOME/.claude}
+
+"$machine_cli" init --client codex --force
+"$machine_cli" init --client agents --force
+"$machine_cli" init --client claude --force
+"$machine_cli" init --print > "$skill_reference"
+
+cmp "$skill_reference" "$codex_root/skills/asc-tooling/SKILL.md"
+cmp "$skill_reference" "$HOME/.agents/skills/asc-tooling/SKILL.md"
+cmp "$skill_reference" "$claude_root/skills/asc-tooling/SKILL.md"
+rm "$skill_reference"
+```
+
+### Find Machine-Level Consumers
+
+Rescan `~/Developer` on every release. The primary inventory is product
+Makefiles that declare an `asc_tooling` install or minimum version, not
+Gemfiles:
+
+```bash
+rg -l --glob 'Makefile' \
+  'ASC_TOOLING_(VERSION|INSTALL_VERSION|MIN_VERSION)' \
+  "$HOME/Developer" \
+  | while IFS= read -r consumer_file; do dirname "$consumer_file"; done \
+  | sort -u
+```
+
+Also scan for legacy Gemfile consumers and migrate any result to the
+machine-level model:
+
+```bash
+rg -l --glob 'Gemfile' "gem ['\"]asc_tooling['\"]" "$HOME/Developer"
+```
 
 ### Update Each Consumer Repository
 
-For each repository returned by the scan:
+For each machine-level consumer:
 
-1. Sync `main` and create a release follow-up branch such as
-   `chore/bump-asc-tooling-v0-11-0`.
-2. Update the `tag:` in `Gemfile` to the newly released version.
-3. Run `bundle update asc_tooling` to refresh `Gemfile.lock`.
-4. Run the repository's normal validation commands.
-5. Commit, push, and open a PR.
+1. Read its `AGENTS.md` and release docs, then sync `main`.
+2. Confirm which version its ASC commands actually require.
+3. While a repository still uses the legacy single
+   `ASC_TOOLING_VERSION` variable for both installation and checking, update it
+   to the new release so a clean-machine `make setup` cannot install a stale
+   tag.
+4. Prefer separating `ASC_TOOLING_INSTALL_VERSION` from
+   `ASC_TOOLING_MIN_VERSION`: installation selects a reproducible release,
+   while the check enforces the lowest version required by that product's
+   command surface. The installer must never replace a newer installed CLI
+   with an older one.
+5. Run `make asc-tooling-check` and the repository's normal validation gates.
+   The check proves compatibility only; the machine-level exact-version check
+   above proves rollout.
+6. Commit the consumer change on a branch such as
+   `chore/bump-asc-tooling-v0-11-0`, open a PR, and record any intentionally
+   lagging consumer.
 
 Example workflow after choosing one repository from the scan result:
 
@@ -302,12 +396,12 @@ git switch main
 git pull --ff-only origin main
 git switch -c chore/bump-asc-tooling-v0-11-0
 
-# Update Gemfile tag from the previous version to v0.11.0.
-bundle update asc_tooling
+# Update ASC_TOOLING_VERSION or the separated install/minimum variables.
+make asc-tooling-check
 
 # Run the repo-specific verification here.
 
-git add Gemfile Gemfile.lock
+git add Makefile
 git commit -m "chore: update asc_tooling to v0.11.0"
 git push -u origin HEAD
 gh pr create --fill
@@ -317,8 +411,14 @@ gh pr create --fill
 
 Before considering the release fully rolled out, confirm that:
 
-- every local consumer repository has a PR for the new `asc_tooling` tag
-- every updated `Gemfile.lock` resolves to the expected `asc_tooling` version
+- the GitHub release and gem asset are published and the release notes describe
+  command-surface and migration changes
+- the machine-level CLI reports the exact released version
+- the Codex, Agent, and Claude skill copies match the released gem
+- every machine-level consumer was discovered through its Makefile
+- no consumer setup path can install a tag older than the intended global
+  release
+- every consumer that needs a version change has a PR with its normal gates
 - any lagging consumer is explicitly noted for follow-up
 
 ## Scope
