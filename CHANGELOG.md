@@ -8,6 +8,12 @@ for product repositories that consume `asc_tooling`.
 
 ## Unreleased
 
+### Changed
+
+- Made the machine-level CLI/gem the primary installation and post-release
+  rollout model, including exact-version verification, bundled skill refresh,
+  Makefile consumer discovery, and stale-install safeguards.
+
 ## 0.11.0 - 2026-08-26
 
 ### Added

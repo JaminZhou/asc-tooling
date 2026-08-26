@@ -86,24 +86,30 @@ For `asc-sales`, also set:
 `asc_tooling` is currently distributed through GitHub tags rather than
 RubyGems.
 
-Install it from the public repository in a product `Gemfile`:
-
-```ruby
-gem "asc_tooling",
-  git: "https://github.com/JaminZhou/asc-tooling.git",
-  tag: "v0.11.0"
-```
-
-Then install and run through Bundler:
+Install the released gem once as a machine-level CLI. Product repositories
+should invoke this installation instead of carrying their own `Gemfile` pin:
 
 ```bash
-bundle install
-bundle exec asc-tooling commands
-bundle exec asc-tooling review status --bundle-id com.example.app
-bundle exec asc-review status --bundle-id com.example.app
-bundle exec asc-review release --bundle-id com.example.app --app-version 1.2.0
-bundle exec asc-review withdraw --bundle-id com.example.app --app-version 1.2.0
+release_tag=v0.11.0
+release_version=${release_tag#v}
+release_download_dir=$(mktemp -d)
+
+gh release download "$release_tag" \
+  --repo JaminZhou/asc-tooling \
+  --pattern "asc_tooling-${release_version}.gem" \
+  --dir "$release_download_dir"
+gem install --user-install --bindir "$HOME/.local/bin" --no-document \
+  "$release_download_dir/asc_tooling-${release_version}.gem"
+rm "$release_download_dir/asc_tooling-${release_version}.gem"
+rmdir "$release_download_dir"
+
+"$HOME/.local/bin/asc-tooling" --version
+"$HOME/.local/bin/asc-tooling" commands
 ```
+
+Keep `$HOME/.local/bin` on `PATH`, or have product automation invoke the
+absolute path. The full post-release installation and consumer rollout checks
+are documented in [Release And Usage](docs/release-and-usage.md#post-release-sop).
 
 If you prefer to work from a local checkout while iterating on the tool itself:
 
@@ -125,20 +131,20 @@ The base unified commands in this section require `v0.9.0` or newer.
 or newer.
 
 ```bash
-bundle exec asc-tooling commands
-bundle exec asc-tooling --version
-bundle exec asc-tooling review status --bundle-id com.example.app
-bundle exec asc-tooling version create --bundle-id com.example.app --version 1.2.0 --platform ios --dry-run
-bundle exec asc-tooling availability status --bundle-id com.example.app
+asc-tooling commands
+asc-tooling --version
+asc-tooling review status --bundle-id com.example.app
+asc-tooling version create --bundle-id com.example.app --version 1.2.0 --platform ios --dry-run
+asc-tooling availability status --bundle-id com.example.app
 ```
 
 Install the bundled skill for Codex-compatible agents or Claude:
 
 ```bash
-bundle exec asc-tooling init --client codex --force    # $CODEX_HOME/skills, or ~/.codex/skills
-bundle exec asc-tooling init --client agents --force   # ~/.agents/skills
-bundle exec asc-tooling init --client claude --force   # $CLAUDE_CONFIG_DIR/skills, or ~/.claude/skills
-bundle exec asc-tooling init --print
+asc-tooling init --client codex --force    # $CODEX_HOME/skills, or ~/.codex/skills
+asc-tooling init --client agents --force   # ~/.agents/skills
+asc-tooling init --client claude --force   # $CLAUDE_CONFIG_DIR/skills, or ~/.claude/skills
+asc-tooling init --print
 ```
 
 Use `--client codex` for Codex-native installs that follow Codex's own
@@ -149,19 +155,19 @@ installs that follow `CLAUDE_CONFIG_DIR` when it is set.
 The legacy executable names remain supported for existing scripts:
 
 ```bash
-./exe/asc-review status --bundle-id com.example.app
-./exe/asc-review status --bundle-id com.example.app --app-version 1.2.0 --items
-./exe/asc-review attach-build --bundle-id com.example.app --app-version 1.2.0 --build-number 2026082501 --dry-run
-./exe/asc-review withdraw --bundle-id com.example.app --app-version 1.2.0 --dry-run
-./exe/asc-metadata status --bundle-id com.example.app --locale en-US
-./exe/asc-beta status --bundle-id com.example.app
-./exe/asc-sales units --bundle-id com.example.app --vendor-number 12345678 --report-date 2026-04-10
-./exe/asc-screenshots status --bundle-id com.example.app --locale en-US --display-type APP_DESKTOP
-./exe/asc-iap status --bundle-id com.example.app
-./exe/asc-version create --bundle-id com.example.app --version 1.2.0 --platform ios --dry-run
-./exe/asc-availability status --bundle-id com.example.app
-./exe/asc-availability apply --bundle-id com.example.app --all-territories --available-in-new-territories --dry-run
-./exe/asc-store-setup status --bundle-id com.example.app --app-version 1.0.0 --platform ios
+asc-review status --bundle-id com.example.app
+asc-review status --bundle-id com.example.app --app-version 1.2.0 --items
+asc-review attach-build --bundle-id com.example.app --app-version 1.2.0 --build-number 2026082501 --dry-run
+asc-review withdraw --bundle-id com.example.app --app-version 1.2.0 --dry-run
+asc-metadata status --bundle-id com.example.app --locale en-US
+asc-beta status --bundle-id com.example.app
+asc-sales units --bundle-id com.example.app --vendor-number 12345678 --report-date 2026-04-10
+asc-screenshots status --bundle-id com.example.app --locale en-US --display-type APP_DESKTOP
+asc-iap status --bundle-id com.example.app
+asc-version create --bundle-id com.example.app --version 1.2.0 --platform ios --dry-run
+asc-availability status --bundle-id com.example.app
+asc-availability apply --bundle-id com.example.app --all-territories --available-in-new-territories --dry-run
+asc-store-setup status --bundle-id com.example.app --app-version 1.0.0 --platform ios
 ```
 
 `asc-metadata status` and `asc-screenshots status` can read a specific editable
