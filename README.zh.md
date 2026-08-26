@@ -66,14 +66,14 @@
 release_tag=v0.11.0
 release_version=${release_tag#v}
 release_download_dir=$(mktemp -d)
+release_gem="$release_download_dir/asc_tooling-${release_version}.gem"
 
-gh release download "$release_tag" \
-  --repo JaminZhou/asc-tooling \
-  --pattern "asc_tooling-${release_version}.gem" \
-  --dir "$release_download_dir"
+curl --fail --location \
+  --output "$release_gem" \
+  "https://github.com/JaminZhou/asc-tooling/releases/download/${release_tag}/asc_tooling-${release_version}.gem"
 gem install --user-install --bindir "$HOME/.local/bin" --no-document \
-  "$release_download_dir/asc_tooling-${release_version}.gem"
-rm "$release_download_dir/asc_tooling-${release_version}.gem"
+  "$release_gem"
+rm "$release_gem"
 rmdir "$release_download_dir"
 
 "$HOME/.local/bin/asc-tooling" --version

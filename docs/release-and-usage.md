@@ -263,10 +263,18 @@ git push origin v0.11.0
 ```
 
 5. Let the Release workflow build the gem artifact and create the GitHub
-   release. If manual fallback is needed:
+   release. If manual fallback is needed, authenticate GitHub CLI, build the
+   same gem artifact locally, and attach it while creating the release:
 
 ```bash
-gh release create v0.11.0 --generate-notes
+release_tag=v0.11.0
+release_version=${release_tag#v}
+
+gh auth status --hostname github.com
+gem build asc_tooling.gemspec
+gh release create "$release_tag" \
+  "asc_tooling-${release_version}.gem" \
+  --generate-notes
 ```
 
 6. Verify that the published release is not a draft or prerelease, contains
@@ -293,13 +301,13 @@ release_download_dir=$(mktemp -d)
 release_gem="$release_download_dir/asc_tooling-${release_version}.gem"
 machine_cli="$HOME/.local/bin/asc-tooling"
 
+gh auth status --hostname github.com
 gh release view "$release_tag" \
   --repo JaminZhou/asc-tooling \
   --json tagName,isDraft,isPrerelease,publishedAt,url,assets
-gh release download "$release_tag" \
-  --repo JaminZhou/asc-tooling \
-  --pattern "asc_tooling-${release_version}.gem" \
-  --dir "$release_download_dir"
+curl --fail --location \
+  --output "$release_gem" \
+  "https://github.com/JaminZhou/asc-tooling/releases/download/${release_tag}/asc_tooling-${release_version}.gem"
 
 gem install --user-install --bindir "$HOME/.local/bin" --no-document \
   "$release_gem"
