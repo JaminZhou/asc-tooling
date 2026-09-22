@@ -267,6 +267,12 @@ module ASCTooling
 
       localization = localizations.find { |item| item.dig("attributes", "locale") == locale }
 
+      if @options[:dry_run]
+        action = localization ? "update" : "create"
+        puts "Dry run: would #{action} test notes for #{app.name}, build #{build_version} (#{locale})."
+        return
+      end
+
       if localization
         @asc.request_json(
           "PATCH",

@@ -27,6 +27,9 @@
 
 ## 命令
 
+TestFlight 测试说明支持 `beta set-test-notes --dry-run`，预演仅进行查询，
+不会创建或更新 App Store Connect 的说明。
+
 - `asc-tooling`
 - `asc-review`
 - `asc-metadata`

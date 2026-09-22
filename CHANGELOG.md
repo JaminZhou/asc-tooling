@@ -8,6 +8,11 @@ for product repositories that consume `asc_tooling`.
 
 ## Unreleased
 
+### Fixed
+
+- `beta set-test-notes --dry-run` now previews both create and update paths
+  without writing to App Store Connect.
+
 ### Changed
 
 - Made the machine-level CLI/gem the primary installation and post-release
