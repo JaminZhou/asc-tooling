@@ -140,7 +140,41 @@ class ASCToolingBetaTest < Minitest::Test
     assert_empty relationship_posts
   end
 
+  def test_test_notes_dry_run_never_creates_or_updates_a_localization
+    [[], [{ "id" => "notes-1", "attributes" => { "locale" => "en-US" } }]].each do |localizations|
+      client = notes_client(localizations)
+      beta = build_beta(client, command: "set-test-notes", build_number: "42", notes: "Test notes", dry_run: true)
+      stdout, = capture_io { beta.run }
+
+      assert_includes stdout, "Dry run"
+      assert_includes stdout, "build 42 (en-US)"
+      assert_equal(["GET"], client.requests.map { |request| request[:method] })
+    end
+  end
+
+  def test_test_notes_apply_preserves_create_and_update_behavior
+    [[], [{ "id" => "notes-1", "attributes" => { "locale" => "en-US" } }]].each do |localizations|
+      client = notes_client(localizations)
+      beta = build_beta(client, command: "set-test-notes", build_number: "42", notes: "Test notes")
+      capture_io { beta.run }
+
+      mutation = client.requests.last
+      assert_equal(localizations.empty? ? "POST" : "PATCH", mutation[:method])
+      assert_equal "Test notes", mutation.dig(:body, :data, :attributes, :whatsNew)
+      assert_equal(localizations.empty? ? "/v1/betaBuildLocalizations" : "/v1/betaBuildLocalizations/notes-1", mutation[:path])
+    end
+  end
+
   private
+
+  def notes_client(localizations)
+    client = FakeClient.new(app: OpenStruct.new(id: "app-1", name: "Test", bundle_id: "com.test"))
+    client.define_singleton_method(:request_json) do |method, path, params: nil, body: nil|
+      @requests << { method: method, path: path, params: params, body: body }
+      { "data" => method == "GET" ? localizations : {} }
+    end
+    client
+  end
 
   def build_beta(client, options = {})
     beta = ASCTooling::Beta.allocate

@@ -32,6 +32,7 @@ distribution, in-app purchases, app versions, availability, and sales reports.
   App Review details
 - screenshot inspection and upload
 - TestFlight group and tester management
+- TestFlight build notes, with read-only `beta set-test-notes --dry-run` previews
 - in-app purchase readiness helpers
 - app territory availability checks and global new-territory enablement
 - Sales and Trends report download plus unit summaries
