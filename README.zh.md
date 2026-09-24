@@ -1,9 +1,23 @@
-# asc-tooling
+# asc-tooling (archived)
+
+> **本项目已停止维护，迁移到 [rorkai/App-Store-Connect-CLI](https://github.com/rorkai/App-Store-Connect-CLI)。**
+> 本仓库仅保留历史代码和发布记录，不再新增功能或发布版本。
+> 新的 App Store Connect 工作使用上游 `asc` 及其技能，详见 [迁移指南](MIGRATION.md)。
+
+```sh
+brew install asc
+asc install-skills
+```
+
+下面的安装方法和命令仅作为旧工具的历史文档保留，不代表当前推荐流程。
+
+<details>
+<summary>历史文档</summary>
 
 [![CI](https://github.com/JaminZhou/asc-tooling/actions/workflows/ci.yml/badge.svg)](https://github.com/JaminZhou/asc-tooling/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/JaminZhou/asc-tooling?sort=semver)](https://github.com/JaminZhou/asc-tooling/releases)
 [![Ruby](https://img.shields.io/badge/ruby-3.1--3.3-red.svg)](.github/workflows/ci.yml)
-[![Status](https://img.shields.io/badge/status-production%20local%20tooling-2563eb.svg)](CHANGELOG.md)
+[![Status](https://img.shields.io/badge/status-retired-lightgrey.svg)](CHANGELOG.md)
 [![Agent Skill](https://img.shields.io/badge/Agent%20skill-Codex%20%2F%20Claude-111827.svg)](skills/asc-tooling/SKILL.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -179,3 +193,5 @@ CLI 提交。
 
 贡献流程见 [CONTRIBUTING.md](CONTRIBUTING.md)。安全问题请按 [SECURITY.md](SECURITY.md) 处理，不要在公开 issue 中粘贴凭证、Cookie、`.p8` 密钥或产品敏感信息。
 发布历史见 [CHANGELOG.md](CHANGELOG.md)。
+
+</details>

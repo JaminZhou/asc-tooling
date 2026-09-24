@@ -8,6 +8,12 @@ for product repositories that consume `asc_tooling`.
 
 ## Unreleased
 
+### Retired — 2026-09-24
+
+- Ended independent development in favor of `rorkai/App-Store-Connect-CLI` (`asc`).
+- Added migration guidance for existing product integrations and credential variable names.
+- Retained historical source and releases; no replacement gem release is planned.
+
 ### Fixed
 
 - `beta set-test-notes --dry-run` now previews both create and update paths
