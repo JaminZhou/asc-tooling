@@ -6,13 +6,13 @@
 - Keep `README.zh.md` conceptually aligned when public-facing behavior, commands, installation, or support boundaries change.
 - Use Chinese by default when Jamin asks in Chinese.
 
-## Project Scope
+## Retirement
 
-- This repository contains reusable App Store Connect tooling, not product-specific release state.
-- Product-specific screenshot generation, review notes, metadata files, App Store Connect keys, and release decisions belong in consuming product repositories.
-- The supported surface is the JWT-based CLI command set plus the bundled `asc-tooling` skill installer.
-- Product repositories consume one machine-level `asc-tooling` CLI/gem and enforce product-local minimum versions; do not reintroduce per-product Gemfile pins.
-- `experimental/` helpers are local-only and unsupported public interfaces.
+- This repository is retired in favor of `rorkai/App-Store-Connect-CLI`.
+- Do not add new features, release versions, or reinstall its gem or skill into product repositories.
+- Use upstream `asc` and its skills for App Store Connect operations. Product-local migration instructions live in each consumer's `docs/asc-migration.md`.
+- Keep historical source, tests, tags, and documentation for reference. The checks below apply to any final archival correction.
+- Product-specific release state, assets and secrets still belong in consuming product repositories.
 
 ## Security Boundaries
 

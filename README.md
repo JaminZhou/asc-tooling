@@ -1,9 +1,24 @@
-# asc-tooling
+# asc-tooling (archived)
+
+> **Retired in favor of [rorkai/App-Store-Connect-CLI](https://github.com/rorkai/App-Store-Connect-CLI).**
+> This repository is retained as a historical archive. It will not receive new features or releases.
+> Use upstream `asc` and its skills for new App Store Connect work. See [migration guidance](MIGRATION.md).
+
+```sh
+brew install asc
+asc install-skills
+```
+
+The implementation, tests and release history remain available for reference.
+The installation and command examples below describe the retired tool, not the current supported workflow.
+
+<details>
+<summary>Historical documentation</summary>
 
 [![CI](https://github.com/JaminZhou/asc-tooling/actions/workflows/ci.yml/badge.svg)](https://github.com/JaminZhou/asc-tooling/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/JaminZhou/asc-tooling?sort=semver)](https://github.com/JaminZhou/asc-tooling/releases)
 [![Ruby](https://img.shields.io/badge/ruby-3.1--3.3-red.svg)](.github/workflows/ci.yml)
-[![Status](https://img.shields.io/badge/status-production%20local%20tooling-2563eb.svg)](CHANGELOG.md)
+[![Status](https://img.shields.io/badge/status-retired-lightgrey.svg)](CHANGELOG.md)
 [![Agent Skill](https://img.shields.io/badge/Agent%20skill-Codex%20%2F%20Claude-111827.svg)](skills/asc-tooling/SKILL.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -244,3 +259,5 @@ workflow:
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the current contribution workflow.
 Release history is tracked in [CHANGELOG.md](CHANGELOG.md).
+
+</details>

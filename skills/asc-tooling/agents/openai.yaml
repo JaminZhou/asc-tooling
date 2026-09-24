@@ -1,7 +1,7 @@
 interface:
-  display_name: "ASC Tooling"
-  short_description: "Use App Store Connect release automation CLIs."
-  default_prompt: "Use $asc-tooling to inspect or run App Store Connect release workflow commands safely."
+  display_name: "ASC Tooling (Archived)"
+  short_description: "Historical reference for the retired Ruby CLI."
+  default_prompt: "Inspect historical $asc-tooling behavior only; use upstream asc skills for current App Store Connect work."
 
 policy:
-  allow_implicit_invocation: true
+  allow_implicit_invocation: false

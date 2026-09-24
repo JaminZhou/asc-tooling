@@ -1,9 +1,13 @@
 ---
 name: asc-tooling
-description: Use asc_tooling for App Store Connect release automation through explicit local CLI commands. Trigger when the user asks about App Store Connect review submission, metadata, screenshots, TestFlight beta, in-app purchases, app version creation, territory availability, store setup, Sales and Trends reports, or reusable ASC release workflows. Keep product-specific assets and secrets outside this repository.
+description: Historical reference for the retired asc-tooling Ruby CLI. Use only when inspecting this archived project; use upstream asc skills for current App Store Connect work.
 ---
 
-# asc-tooling
+# asc-tooling (retired)
+
+This skill is archival. For current work, install `rorkai/App-Store-Connect-CLI`
+and run `asc install-skills`. Follow the consuming product's `docs/asc-migration.md`.
+Do not reinstall or extend this retired CLI. The instructions below describe its historical behavior.
 
 Use this skill when working with `asc_tooling`, the reusable App Store Connect CLI toolkit.
 
