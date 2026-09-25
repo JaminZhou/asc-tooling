@@ -12,7 +12,9 @@ This is a workflow migration, not a drop-in executable rename. Product repositor
 
 ## Credentials
 
-Continue using the existing App Store Connect API key. Upstream expects `ASC_PRIVATE_KEY_PATH`; the old tool used `ASC_KEY_PATH`. Product Makefiles map the old value into the new process environment so Xcode upload authentication can keep using the old variable. Keep the `.p8` file and env file outside repositories. No new Apple key, browser session, or keychain export is needed for JWT operations.
+Continue using the existing App Store Connect API key. Authenticate directly with `asc auth login`, which stores the credential in the system keychain; use `asc auth login --help` for setup and `asc auth status --validate` to verify it. Native `asc` commands use this profile without a Make wrapper or a sourced Xcode env file.
+
+Product archive/upload targets separately load the existing private env file for Xcode authentication and retain `ASC_KEY_PATH`. If native `asc` needs environment-based authentication instead of a keychain profile, it expects `ASC_PRIVATE_KEY_PATH`; set that explicitly. Product Makefiles no longer translate these variables for native CLI commands. Keep the `.p8` file and env file outside repositories. No new Apple key, browser session, or keychain export is needed for JWT operations.
 
 ## Main changes
 
@@ -29,7 +31,7 @@ Continue using the existing App Store Connect API key. Upstream expects `ASC_PRI
 | IAP submission | Versioned IAPs and review submission items; follow current Apple first-of-type rules |
 | Sales summary | Native report download / insights; keep product-specific output formatting with its consumer |
 
-Use `--help` on the installed command before use. Native `--dry-run` is command-specific. A wrapper's `make -n` prints a recipe only and does not validate remote permissions/state. Do not invent a `--dry-run` flag for commands that do not expose it.
+Use `--help` on the installed command before use. Native `--dry-run` is command-specific: supply it explicitly where supported, and use `--confirm` where required. The former `make asc-*`, `make asc ARGS=...` and `ASC_APPLY` interfaces have been removed. Do not invent a `--dry-run` flag for commands that do not expose it.
 
 ## Consumer guides
 
@@ -38,7 +40,7 @@ Use `--help` on the installed command before use. Native `--dry-run` is command-
 - [Hushtrail](https://github.com/JaminZhou/hushtrail/blob/main/docs/asc-migration.md)
 - [Trailglass](https://github.com/JaminZhou/Trailglass/blob/main/docs/asc-migration.md)
 
-Each guide records changed Make inputs and preserves product-specific release decisions. Historical version notes remain historical; use the current guide for commands.
+Each guide records its app ID, platform, authentication and product-specific release inputs. Build, screenshot generation and required product release checks remain in the consuming repository; generic App Store Connect operations use native `asc` and upstream skills directly. Historical version notes remain historical; use the current guide for commands.
 
 ## Retiring the old installation
 
