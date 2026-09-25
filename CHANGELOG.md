@@ -12,6 +12,7 @@ for product repositories that consume `asc_tooling`.
 
 - Ended independent development in favor of `rorkai/App-Store-Connect-CLI` (`asc`).
 - Added migration guidance for existing product integrations and credential variable names.
+- Updated the migration guide after consumer simplification to describe native keychain authentication and the removal of generic ASC Make wrappers.
 - Retained historical source and releases; no replacement gem release is planned.
 
 ### Fixed
